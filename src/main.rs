@@ -8,6 +8,7 @@ use random::{Random, RandomPlugin};
 use std::{env, process};
 
 mod config;
+mod effects;
 mod random;
 
 pub const SCREEN: Vec2 = Vec2::from_array([1024.0, 512.0]);
