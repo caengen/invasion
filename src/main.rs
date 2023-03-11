@@ -9,25 +9,27 @@ use bevy::{
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use config::Debug;
+use game::GamePlugin;
+use main_menu::*;
 use rand::Rng;
 use random::{Random, RandomPlugin};
-use std::{env, process};
-use SplashPlugin::*;
+use std::{default, env, process};
 
-mod SplashPlugin;
 mod config;
 mod effects;
+mod game;
+mod main_menu;
 mod random;
 
 pub const SCREEN: Vec2 = Vec2::from_array([1024.0, 512.0]);
 pub const DARK: Color = Color::rgb(0.191, 0.184, 0.156);
 pub const LIGHT: Color = Color::rgb(0.852, 0.844, 0.816);
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(States, Hash, Clone, PartialEq, Eq, Debug, Default)]
 enum AppState {
-    Splash,
+    #[default]
+    MainMenu,
     InGame,
-    Paused,
 }
 
 fn main() {
@@ -60,16 +62,18 @@ fn main() {
             })
             .set(ImagePlugin::default_nearest()),
     )
+    .add_state::<AppState>()
     .insert_resource(Debug(cfg.debug))
     .add_plugin(FrameTimeDiagnosticsPlugin::default())
-    .add_startup_system(setup)
     .add_plugin(SplashPlugin)
-    .add_plugin(WorldInspectorPlugin::default().run_if(input_toggle_active(true, KeyCode::Escape)));
+    .add_plugin(GamePlugin)
+    .add_plugin(WorldInspectorPlugin::default().run_if(input_toggle_active(true, KeyCode::Escape)))
+    .add_startup_system(setup);
 
     app.run();
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle {
         camera_2d: Camera2d {
             clear_color: ClearColorConfig::Custom(DARK),
