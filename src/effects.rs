@@ -34,10 +34,13 @@ pub fn _flick_system(
         flick.switch_timer.tick(time.delta());
 
         if flick.duration.finished() {
-            visibility.is_visible = true;
+            *visibility = Visibility::Visible;
             commands.entity(entity).remove::<Flick>();
         } else if flick.switch_timer.just_finished() {
-            visibility.is_visible = !visibility.is_visible;
+            // *visibility = match visibility {
+            //     Visibility::Visible => Visibility::Hidden,
+            //     _ => Visibility::Visible,
+            // };
         }
     }
 }
@@ -51,28 +54,6 @@ pub fn _shrink_system(mut shrinking: Query<(&mut Transform, &mut Shrink)>, time:
 
         if shrink.0.just_finished() && transform.scale.x > 0.0 && transform.scale.y > 0.0 {
             transform.scale *= 1.0 - (0.9 * time.delta_seconds());
-        }
-    }
-}
-
-pub fn _darken_system(
-    mut query: Query<(&mut DrawMode, &mut Darken, Without<DelayedVisibility>)>,
-    time: Res<Time>,
-) {
-    for (mut draw_mode, mut darken, _) in query.iter_mut() {
-        darken.0.tick(time.delta());
-
-        if darken.0.just_finished() {
-            if let DrawMode::Outlined {
-                ref mut fill_mode,
-                ref mut outline_mode,
-            } = *draw_mode
-            {
-                let pc = 0.70;
-                let new_cor = Color::rgb(LIGHT.r() * pc, LIGHT.g() * pc, LIGHT.b() * pc);
-                fill_mode.color = new_cor;
-                outline_mode.color = new_cor;
-            }
         }
     }
 }
@@ -101,7 +82,7 @@ pub fn _delayed_visibility_system(
 
         if delay.0.finished() {
             commands.entity(entity).remove::<DelayedVisibility>();
-            visibility.is_visible = true;
+            *visibility = Visibility::Visible;
         }
     }
 }

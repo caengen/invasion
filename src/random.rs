@@ -1,16 +1,16 @@
 use bevy::prelude::*;
 use rand::{prelude::SmallRng, SeedableRng};
 
+#[derive(Resource, Debug, Deref, DerefMut)]
+pub struct Random(SmallRng);
+
 pub struct RandomPlugin;
 
 impl Plugin for RandomPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(Random(SmallRng::from_entropy()));
+        app.insert_resource::<Random>(Random(SmallRng::from_entropy()));
     }
 }
-
-#[derive(Debug, Deref, DerefMut)]
-pub struct Random(SmallRng);
 
 impl FromWorld for Random {
     fn from_world(world: &mut World) -> Self {

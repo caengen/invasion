@@ -1,3 +1,7 @@
+use bevy::prelude::Resource;
+
+#[derive(Resource)]
+pub struct Debug(pub bool);
 #[derive(Default)]
 pub struct ProgramConfig {
     pub debug: bool,
