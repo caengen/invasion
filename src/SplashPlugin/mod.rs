@@ -17,29 +17,25 @@ impl Plugin for SplashPlugin {
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(Camera2dBundle::default());
-    // Text with one section
+    // Text with multiple sections
     commands.spawn(
-        // Create a TextBundle that has a Text with a single section.
-        TextBundle::from_section(
-            // Accepts a `String` or any type that converts into a `String`, such as `&str`
-            "hello\nbevy!",
-            TextStyle {
-                font: asset_server.load("assets/visitor.ttf"),
-                font_size: 100.0,
-                color: Color::WHITE,
-            },
-        ) // Set the alignment of the Text
-        .with_text_alignment(TextAlignment::Center)
-        // Set the style of the TextBundle itself.
-        .with_style(Style {
-            position_type: PositionType::Absolute,
-            position: UiRect {
-                bottom: Val::Px(5.0),
-                right: Val::Px(15.0),
-                ..default()
-            },
-            ..default()
-        }),
+        (
+            // Create a TextBundle that has a Text with a list of sections.
+            TextBundle::from_sections([
+                TextSection::new(
+                    "splash: hello game!",
+                    TextStyle {
+                        font: asset_server.load("fonts/visitor.ttf"),
+                        font_size: 60.0,
+                        color: Color::WHITE,
+                    },
+                ),
+                TextSection::from_style(TextStyle {
+                    font: asset_server.load("fonts/visitor.ttf"),
+                    font_size: 60.0,
+                    color: Color::GOLD,
+                }),
+            ])
+        ),
     );
 }

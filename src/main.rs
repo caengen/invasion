@@ -1,5 +1,7 @@
 use bevy::{
+    core_pipeline::clear_color::ClearColorConfig,
     diagnostic::FrameTimeDiagnosticsPlugin,
+    input::common_conditions::input_toggle_active,
     log::{Level, LogPlugin},
     prelude::*,
     window::PresentMode,
@@ -61,16 +63,18 @@ fn main() {
     .insert_resource(Debug(cfg.debug))
     .add_plugin(FrameTimeDiagnosticsPlugin::default())
     .add_startup_system(setup)
-    .add_plugin(SplashPlugin);
-
-    if cfg.debug {
-        // app.add_plugin(WorldInspectorPlugin);
-    }
+    .add_plugin(SplashPlugin)
+    .add_plugin(WorldInspectorPlugin::default().run_if(input_toggle_active(true, KeyCode::Escape)));
 
     app.run();
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // UI Camera
-    // commands.spawn_bundle(Camera2dBundle::default());
+    commands.spawn(Camera2dBundle {
+        camera_2d: Camera2d {
+            clear_color: ClearColorConfig::Custom(DARK),
+            ..default()
+        },
+        ..default()
+    });
 }
