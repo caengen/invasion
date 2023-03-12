@@ -13,24 +13,22 @@ use game::GamePlugin;
 use main_menu::*;
 use rand::Rng;
 use random::{Random, RandomPlugin};
-use std::{default, env, process};
+use std::{env, process};
 
 mod config;
-mod effects;
 mod game;
 mod main_menu;
 mod random;
 
-pub const SCREEN: Vec2 = Vec2::from_array([1024.0, 512.0]);
+pub const SCREEN: Vec2 = Vec2::from_array([512.0, 256.0]);
 pub const DARK: Color = Color::rgb(0.191, 0.184, 0.156);
 pub const LIGHT: Color = Color::rgb(0.852, 0.844, 0.816);
 
 #[derive(States, Hash, Clone, PartialEq, Eq, Debug, Default)]
-enum AppState {
+pub enum AppState {
     #[default]
     MainMenu,
     InGame,
-    Paused,
 }
 
 fn main() {
@@ -65,6 +63,7 @@ fn main() {
     )
     .add_state::<AppState>()
     .insert_resource(Debug(cfg.debug))
+    .add_plugin(RandomPlugin)
     .add_plugin(FrameTimeDiagnosticsPlugin::default())
     .add_plugin(SplashPlugin)
     .add_plugin(GamePlugin)

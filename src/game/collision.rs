@@ -1,16 +1,23 @@
-fn distance_between(a: &Vec3, b: &Vec3) -> f32 {
+use bevy::{
+    math::{vec2, vec3},
+    prelude::*,
+};
+
+use super::data::Bounding;
+
+pub fn distance_between(a: &Vec3, b: &Vec3) -> f32 {
     a.distance(*b)
 }
 
-fn circles_touching(a: &Transform, ar: &Bounding, b: &Transform, br: &Bounding) -> bool {
+pub fn circles_touching(a: &Transform, ar: &Bounding, b: &Transform, br: &Bounding) -> bool {
     distance_between(&a.translation, &b.translation) < (ar.0 + br.0)
 }
 
-fn distance_to_move(a: &Vec3, ar: f32, b: &Vec3, br: f32) -> f32 {
+pub fn distance_to_move(a: &Vec3, ar: f32, b: &Vec3, br: f32) -> f32 {
     ar + br - distance_between(a, b)
 }
 
-fn rotate_point(fp: Vec2, pt: Vec2, a: f32) -> Vec2 {
+pub fn rotate_point(fp: Vec2, pt: Vec2, a: f32) -> Vec2 {
     let x = pt.x - fp.x;
     let y = pt.y - fp.y;
     let x_rot = x * a.cos() + y * a.sin();
@@ -20,7 +27,7 @@ fn rotate_point(fp: Vec2, pt: Vec2, a: f32) -> Vec2 {
 }
 
 // source: https://github.com/williamfiset/Algorithms/blob/master/src/main/java/com/williamfiset/algorithms/geometry/CircleCircleIntersectionPoints.js
-fn circle_impact_position(a: &Transform, b: &Transform, ar: f32, br: f32) -> Option<Vec3> {
+pub fn circle_impact_position(a: &Transform, b: &Transform, ar: f32, br: f32) -> Option<Vec3> {
     let mut r: f32 = 0.0;
     let mut R: f32 = 0.0;
     let mut cx: f32 = 0.0;
