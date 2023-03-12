@@ -34,12 +34,12 @@ pub fn _flick_system(
         flick.switch_timer.tick(time.delta());
 
         if flick.duration.finished() {
-            *visibility = Visibility::Visible;
+            *visibility = Visibility::Inherited;
             commands.entity(entity).remove::<Flick>();
         } else if flick.switch_timer.just_finished() {
             // *visibility = match visibility {
-            //     Visibility::Visible => Visibility::Hidden,
-            //     _ => Visibility::Visible,
+            //     Visibility::Inherited => Visibility::Hidden,
+            //     _ => Visibility::Inherited,
             // };
         }
     }
@@ -82,7 +82,7 @@ pub fn _delayed_visibility_system(
 
         if delay.0.finished() {
             commands.entity(entity).remove::<DelayedVisibility>();
-            *visibility = Visibility::Visible;
+            *visibility = Visibility::Inherited;
         }
     }
 }

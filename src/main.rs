@@ -30,6 +30,7 @@ enum AppState {
     #[default]
     MainMenu,
     InGame,
+    Paused,
 }
 
 fn main() {
