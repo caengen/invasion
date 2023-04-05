@@ -20,3 +20,4 @@ getrandom = { version = "0.2.7", features = ["js"] }
 rand = { version = "0.8.5", features = ["small_rng"] }
 derive_more = "0.99.17"
 bevy-inspector-egui = "0.18.0"
+bevy_ecs_tilemap = "0.10"

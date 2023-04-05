@@ -343,6 +343,7 @@ version = "0.1.0"
 dependencies = [
  "bevy 0.10.0",
  "bevy-inspector-egui",
+ "bevy_ecs_tilemap",
  "bevy_prototype_lyon",
  "derive_more",
  "getrandom",
@@ -701,6 +702,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "bevy_ecs_tilemap"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac3f6d777dfdc74d24d63ecafaf31628377d2f96bbeeb0012040001a9cb8d442"
+dependencies = [
+ "bevy 0.10.0",
+ "log",
+ "regex",
 ]
 
 [[package]]

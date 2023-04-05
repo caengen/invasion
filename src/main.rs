@@ -20,7 +20,7 @@ mod game;
 mod main_menu;
 mod random;
 
-pub const SCREEN: Vec2 = Vec2::from_array([512.0, 256.0]);
+pub const SCREEN: Vec2 = Vec2::from_array([512.0, 512.0]);
 pub const DARK: Color = Color::rgb(0.191, 0.184, 0.156);
 pub const LIGHT: Color = Color::rgb(0.852, 0.844, 0.816);
 
@@ -31,6 +31,9 @@ pub enum AppState {
     InGame,
 }
 
+/**
+ * The configuration for the game loop. For cleanliness
+ */
 fn main() {
     // Possibility for program args
     let args: Vec<String> = env::args().skip(1).collect();
@@ -63,11 +66,11 @@ fn main() {
     )
     .add_state::<AppState>()
     .insert_resource(Debug(cfg.debug))
-    .add_plugin(RandomPlugin)
     .add_plugin(FrameTimeDiagnosticsPlugin::default())
-    .add_plugin(SplashPlugin)
-    .add_plugin(GamePlugin)
     .add_plugin(WorldInspectorPlugin::default().run_if(input_toggle_active(true, KeyCode::Escape)))
+    .add_plugin(RandomPlugin)
+    .add_plugin(MainMenuPlugin)
+    .add_plugin(GamePlugin)
     .add_startup_system(setup);
 
     app.run();
@@ -77,7 +80,6 @@ fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle {
         camera_2d: Camera2d {
             clear_color: ClearColorConfig::Custom(DARK),
-            ..default()
         },
         ..default()
     });

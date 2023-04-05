@@ -2,10 +2,7 @@ use bevy::{
     prelude::*,
     time::{Time, Timer},
 };
-use bevy_prototype_lyon::prelude::DrawMode;
 use derive_more::From;
-
-use crate::LIGHT;
 
 #[derive(Debug, Component, Default, From)]
 pub struct Flick {

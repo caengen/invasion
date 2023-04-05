@@ -1,10 +1,12 @@
 use self::{
     data::{Paused, PhysicsSet},
-    systems::{example_update, game_keys, is_not_paused, paused, setup, teardown},
+    systems::{
+        animate_sprite, example_setup, example_update, game_keys, is_not_paused, pause_controls,
+        setup_player, teardown,
+    },
 };
-use crate::{random::Random, AppState};
-use bevy::{math::vec2, prelude::*};
-use rand::Rng;
+use crate::AppState;
+use bevy::prelude::*;
 
 mod collision;
 mod data;
@@ -14,9 +16,14 @@ mod systems;
 pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(setup.in_schedule(OnEnter(AppState::InGame)))
+        app.add_systems((example_setup, setup_player).in_schedule(OnEnter(AppState::InGame)))
             .add_systems(
-                (game_keys, example_update.run_if(is_not_paused), paused)
+                (
+                    game_keys,
+                    animate_sprite,
+                    example_update.run_if(is_not_paused),
+                    pause_controls,
+                )
                     .in_set(OnUpdate(AppState::InGame)),
             )
             .configure_set(PhysicsSet::Movement.before(PhysicsSet::CollisionDetection))
