@@ -21,7 +21,7 @@ pub struct Shrink(pub Timer);
 #[derive(Debug, Component)]
 pub struct DelayedVisibility(pub Timer);
 
-pub fn _flick_system(
+pub fn flick_system(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Visibility, &mut Flick)>,
     time: Res<Time>,
@@ -34,10 +34,10 @@ pub fn _flick_system(
             *visibility = Visibility::Inherited;
             commands.entity(entity).remove::<Flick>();
         } else if flick.switch_timer.just_finished() {
-            // *visibility = match visibility {
-            //     Visibility::Inherited => Visibility::Hidden,
-            //     _ => Visibility::Inherited,
-            // };
+            *visibility = match visibility.clone() {
+                Visibility::Inherited => Visibility::Hidden,
+                _ => Visibility::Inherited,
+            };
         }
     }
 }

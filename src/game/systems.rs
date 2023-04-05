@@ -6,19 +6,27 @@ use std::{f32::consts::E, time::Duration};
 
 use crate::random::Random;
 
-use super::data::{
-    AnimationIndices, AnimationTimer, Direction, ExampleGameText, Paused, PausedText, Player, Pos,
-    Vel,
+use super::{
+    data::{
+        AnimationIndices, AnimationTimer, Direction, ExampleGameText, Paused, PausedText, Player,
+        Pos, Vel,
+    },
+    effects::Flick,
 };
 
-pub fn is_not_paused(paused: Res<Paused>) -> bool {
-    !paused.0
+pub fn is_paused(paused: Res<Paused>) -> bool {
+    paused.0
 }
 
 pub fn pause_controls(
-    paused: Res<Paused>,
+    keyboard: Res<Input<KeyCode>>,
+    mut paused: ResMut<Paused>,
     mut pause_texts: Query<(&mut Visibility, With<PausedText>)>,
 ) {
+    if keyboard.just_pressed(KeyCode::P) {
+        paused.0 = !paused.0;
+    }
+
     if paused.is_changed() {
         for (mut vis, _) in pause_texts.iter_mut() {
             match paused.0 {
@@ -40,9 +48,6 @@ pub fn game_keys(
         &mut AnimationTimer,
     )>,
 ) {
-    if keyboard.just_pressed(KeyCode::P) {
-        paused.0 = !paused.0;
-    }
     if keyboard.pressed(KeyCode::Left) {
         move_player(Direction::Left, &mut player);
     }
@@ -126,6 +131,10 @@ pub fn example_setup(
         Vel(vec2(rng.gen_range(1.0..1.5), rng.gen_range(1.0..1.5))),
         Pos(vec2(5.0, 15.0)),
         ExampleGameText,
+        Flick {
+            duration: Timer::from_seconds(60.0, TimerMode::Once),
+            switch_timer: Timer::from_seconds(0.2, TimerMode::Repeating),
+        },
     ));
     commands.spawn((
         // Create a TextBundle that has a Text with a list of sections.

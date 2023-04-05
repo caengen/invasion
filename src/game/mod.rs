@@ -1,7 +1,8 @@
 use self::{
     data::{Paused, PhysicsSet},
+    effects::flick_system,
     systems::{
-        animate_sprite, example_setup, example_update, game_keys, is_not_paused, pause_controls,
+        animate_sprite, example_setup, example_update, game_keys, is_paused, pause_controls,
         setup_player, teardown,
     },
 };
@@ -19,9 +20,10 @@ impl Plugin for GamePlugin {
         app.add_systems((example_setup, setup_player).in_schedule(OnEnter(AppState::InGame)))
             .add_systems(
                 (
-                    game_keys,
-                    animate_sprite,
-                    example_update.run_if(is_not_paused),
+                    game_keys.run_if(not(is_paused)),
+                    animate_sprite.run_if(not(is_paused)),
+                    example_update.run_if(not(is_paused)),
+                    flick_system.run_if(not(is_paused)),
                     pause_controls,
                 )
                     .in_set(OnUpdate(AppState::InGame)),
