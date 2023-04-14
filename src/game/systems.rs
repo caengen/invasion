@@ -48,58 +48,46 @@ pub fn game_keys(
         &mut AnimationTimer,
     )>,
 ) {
-    if keyboard.pressed(KeyCode::Left) {
-        move_player(Direction::Left, &mut player);
+    let mut direction = Vec2::ZERO;
+
+    if keyboard.any_pressed([KeyCode::Left, KeyCode::A]) {
+        direction.x -= 1.0;
     }
-    if keyboard.pressed(KeyCode::Right) {
-        move_player(Direction::Right, &mut player);
+    if keyboard.any_pressed([KeyCode::Right, KeyCode::D]) {
+        direction.x += 1.0;
     }
-    if keyboard.pressed(KeyCode::Up) {
-        move_player(Direction::Up, &mut player);
+    if keyboard.any_pressed([KeyCode::Up, KeyCode::W]) {
+        direction.y += 1.0;
     }
-    if keyboard.pressed(KeyCode::Down) {
-        move_player(Direction::Down, &mut player);
+    if keyboard.any_pressed([KeyCode::Down, KeyCode::S]) {
+        direction.y -= 1.0;
     }
-    if keyboard.any_just_released([KeyCode::Left, KeyCode::Right, KeyCode::Up, KeyCode::Down]) {
-        for (_, _, mut indices, mut sprite, mut timer) in player.iter_mut() {
+
+    let move_speed = 1.0;
+    let move_delta = (direction * move_speed).extend(0.0);
+
+    for (_, mut transform, mut indices, mut sprite, mut timer) in player.iter_mut() {
+        if direction == Vec2::ZERO {
+            // update animation
             indices.first = 0;
             indices.last = 1;
             sprite.index = usize::clamp(sprite.index, indices.first, indices.last);
             timer.0.set_duration(Duration::from_millis(500));
+            continue;
         }
-    }
-}
 
-// this function should move the player and set the correct animation indices
-fn move_player(
-    dir: Direction,
-    player: &mut Query<(
-        &Player,
-        &mut Transform,
-        &mut AnimationIndices,
-        &mut TextureAtlasSprite,
-        &mut AnimationTimer,
-    )>,
-) {
-    for (_, mut transform, mut indices, mut sprite, mut timer) in player.iter_mut() {
+        transform.translation += move_delta;
+
+        // update animation
         indices.first = 2;
         indices.last = 3;
         sprite.index = usize::clamp(sprite.index, indices.first, indices.last);
-        timer.0.set_duration(Duration::from_millis(200));
-        match dir {
-            Direction::Left => {
-                transform.translation.x -= 1.0;
-            }
-            Direction::Right => {
-                transform.translation.x += 1.0;
-            }
-            Direction::Up => {
-                transform.translation.y += 1.0;
-            }
-            Direction::Down => {
-                transform.translation.y -= 1.0;
-            }
+        if move_delta.x < 0.0 {
+            sprite.flip_x = true;
+        } else if move_delta.x > 0.0 {
+            sprite.flip_x = false;
         }
+        timer.0.set_duration(Duration::from_millis(200));
     }
 }
 
