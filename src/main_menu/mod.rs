@@ -1,7 +1,7 @@
 use self::systems::{setup, teardown, transition_to_game};
 use crate::AppState;
 use bevy::prelude::*;
-mod data;
+mod components;
 mod systems;
 /**
  * sett state for lukking

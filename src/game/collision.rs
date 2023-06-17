@@ -3,7 +3,7 @@ use bevy::{
     prelude::*,
 };
 
-use super::data::Bounding;
+use super::components::Bounding;
 
 pub fn distance_between(a: &Vec3, b: &Vec3) -> f32 {
     a.distance(*b)

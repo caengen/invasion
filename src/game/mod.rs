@@ -1,5 +1,5 @@
 use self::{
-    data::{Paused, PhysicsSet},
+    components::{Paused, PhysicsSet},
     effects::flick_system,
     systems::{
         animate_sprite, example_setup, example_update, game_keys, is_paused, pause_controls,
@@ -10,7 +10,7 @@ use crate::AppState;
 use bevy::prelude::*;
 
 mod collision;
-mod data;
+mod components;
 mod effects;
 mod systems;
 

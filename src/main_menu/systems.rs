@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::AppState;
 
-use super::data::MainMenuText;
+use super::components::MainMenuText;
 
 pub fn transition_to_game(
     mut next_state: ResMut<NextState<AppState>>,

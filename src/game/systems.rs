@@ -7,7 +7,7 @@ use std::{f32::consts::E, time::Duration};
 use crate::random::Random;
 
 use super::{
-    data::{
+    components::{
         AnimationIndices, AnimationTimer, Direction, ExampleGameText, Paused, PausedText, Player,
         Pos, Vel,
     },
