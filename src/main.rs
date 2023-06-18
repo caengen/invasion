@@ -1,34 +1,42 @@
 use bevy::{
+    asset,
     core_pipeline::clear_color::ClearColorConfig,
     diagnostic::FrameTimeDiagnosticsPlugin,
     input::common_conditions::input_toggle_active,
     log::{Level, LogPlugin},
     prelude::*,
-    window::PresentMode,
+    window::{Cursor, PresentMode},
     DefaultPlugins,
 };
+use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_turborand::RngPlugin;
 use config::Debug;
 use game::GamePlugin;
 use main_menu::*;
-use rand::Rng;
-use random::{Random, RandomPlugin};
 use std::{env, process};
 
 mod config;
 mod game;
 mod main_menu;
-mod random;
 
 pub const SCREEN: Vec2 = Vec2::from_array([512.0, 512.0]);
 pub const DARK: Color = Color::rgb(0.191, 0.184, 0.156);
 pub const LIGHT: Color = Color::rgb(0.852, 0.844, 0.816);
 
+#[derive(AssetCollection, Resource)]
+pub struct ImageAssets {
+    #[asset(texture_atlas(tile_size_x = 16.0, tile_size_y = 16.0, columns = 2, rows = 1))]
+    #[asset(path = "textures/cursor.png")]
+    pub cursor: Handle<TextureAtlas>,
+}
+
 #[derive(States, Hash, Clone, PartialEq, Eq, Debug, Default)]
-pub enum AppState {
-    #[default]
+pub enum GameState {
     MainMenu,
     InGame,
+    #[default]
+    AssetLoading,
 }
 
 /**
@@ -47,7 +55,7 @@ fn main() {
         DefaultPlugins
             .set(WindowPlugin {
                 primary_window: Some(Window {
-                    title: "TITLE OF YOUR GAME".into(),
+                    title: "Invasion".into(),
                     resolution: (SCREEN.x, SCREEN.y).into(),
                     present_mode: PresentMode::AutoNoVsync,
                     // Tells wasm to resize the window according to the available canvas
@@ -64,11 +72,15 @@ fn main() {
             })
             .set(ImagePlugin::default_nearest()),
     )
-    .add_state::<AppState>()
+    .add_state::<GameState>()
+    .add_loading_state(
+        LoadingState::new(GameState::AssetLoading).continue_to_state(GameState::MainMenu),
+    )
     .insert_resource(Debug(cfg.debug))
+    .add_collection_to_loading_state::<_, ImageAssets>(GameState::AssetLoading)
     .add_plugin(FrameTimeDiagnosticsPlugin::default())
-    .add_plugin(WorldInspectorPlugin::default().run_if(input_toggle_active(true, KeyCode::Escape)))
-    .add_plugin(RandomPlugin)
+    // .add_plugin(WorldInspectorPlugin::default().run_if(input_toggle_active(true, KeyCode::Escape)))
+    .add_plugin(RngPlugin::new().with_rng_seed(220718))
     .add_plugin(MainMenuPlugin)
     .add_plugin(GamePlugin)
     .add_startup_system(setup);
@@ -76,11 +88,21 @@ fn main() {
     app.run();
 }
 
-fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle {
-        camera_2d: Camera2d {
-            clear_color: ClearColorConfig::Custom(DARK),
+#[derive(Component)]
+pub struct MainCamera;
+
+fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
+    commands.spawn((
+        Camera2dBundle {
+            camera_2d: Camera2d {
+                clear_color: ClearColorConfig::Custom(DARK),
+            },
+            ..default()
         },
-        ..default()
-    });
+        MainCamera,
+    ));
+
+    for mut window in windows.iter_mut() {
+        window.cursor.visible = false;
+    }
 }

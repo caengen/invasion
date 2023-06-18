@@ -1,15 +1,15 @@
 use bevy::prelude::*;
 
-use crate::AppState;
+use crate::GameState;
 
 use super::components::MainMenuText;
 
 pub fn transition_to_game(
-    mut next_state: ResMut<NextState<AppState>>,
+    mut next_state: ResMut<NextState<GameState>>,
     keyboard: Res<Input<KeyCode>>,
 ) {
     if keyboard.pressed(KeyCode::Space) {
-        next_state.set(AppState::InGame);
+        next_state.set(GameState::InGame);
     }
 }
 
@@ -18,7 +18,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         // Create a TextBundle that has a Text with a list of sections.
         TextBundle::from_sections([TextSection::new(
-            "GAME TITLE!",
+            "INVASION",
             TextStyle {
                 font: asset_server.load("fonts/visitor.ttf"),
                 font_size: 40.0,
@@ -40,7 +40,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         // Create a TextBundle that has a Text with a list of sections.
         TextBundle::from_sections([TextSection::new(
-            "Press space to continue...",
+            "Press [Space] to begin",
             TextStyle {
                 font: asset_server.load("fonts/visitor.ttf"),
                 font_size: 24.0,

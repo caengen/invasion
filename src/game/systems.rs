@@ -1,10 +1,10 @@
-use bevy::{math::vec2, prelude::*};
-use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
+use bevy::{asset, math::vec2, prelude::*};
+use bevy_asset_loader::prelude::AssetCollection;
 use bevy_ecs_tilemap::prelude::*;
-use rand::Rng;
-use std::{f32::consts::E, time::Duration};
+use bevy_turborand::{DelegatedRng, GlobalRng, RngComponent};
+use std::time::Duration;
 
-use crate::random::Random;
+use crate::{ImageAssets, MainCamera};
 
 use super::{
     components::{
@@ -13,10 +13,6 @@ use super::{
     },
     effects::Flick,
 };
-
-pub fn is_paused(paused: Res<Paused>) -> bool {
-    paused.0
-}
 
 pub fn pause_controls(
     keyboard: Res<Input<KeyCode>>,
@@ -94,8 +90,9 @@ pub fn game_keys(
 pub fn example_setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut rng: Local<Random>,
+    mut global_rng: ResMut<GlobalRng>,
 ) {
+    let mut rng = RngComponent::from(&mut global_rng);
     // Text with multiple sections
     commands.spawn((
         // Create a TextBundle that has a Text with a list of sections.
@@ -116,7 +113,7 @@ pub fn example_setup(
             },
             ..default()
         }),
-        Vel(vec2(rng.gen_range(1.0..1.5), rng.gen_range(1.0..1.5))),
+        Vel(vec2(1.0 + 0.5 * rng.f32(), 1.0 + 0.5 * rng.f32())),
         Pos(vec2(5.0, 15.0)),
         ExampleGameText,
         Flick {
@@ -150,56 +147,32 @@ pub fn example_setup(
     ));
 }
 
-pub fn setup_player(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-) {
-    let idle_handle = asset_server.load("textures/chars/char_atlas.png");
-    let idle_atlas =
-        TextureAtlas::from_grid(idle_handle, Vec2 { x: 16.0, y: 16.0 }, 4, 1, None, None);
-    let texture_atlas_handle = texture_atlases.add(idle_atlas);
-    let anim_indices = AnimationIndices { first: 0, last: 1 };
+pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
     commands.spawn((
         SpriteSheetBundle {
-            texture_atlas: texture_atlas_handle,
-            sprite: TextureAtlasSprite::new(anim_indices.first),
-            transform: Transform::from_scale(Vec3::splat(6.0)),
+            texture_atlas: images.cursor.clone(),
+            sprite: TextureAtlasSprite::new(0),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
             ..default()
         },
-        anim_indices,
-        AnimationTimer(Timer::from_seconds(0.5, TimerMode::Repeating)),
         Player {},
     ));
 }
 
-pub fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // Size of the tile map in tiles.
-    let map_size = TilemapSize { x: 32, y: 32 };
+pub fn move_cursor(
+    mut cursor: Query<(&mut Transform, &Player)>,
+    windows: Query<&Window>,
+    camera_q: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+) {
+    let window = windows.single();
+    let (camera, camera_transform) = camera_q.single();
 
-    // To create a map we use the TileStorage component.
-    // This component is a grid of tile entities and is used to help keep track of individual
-    // tiles in the world. If you have multiple layers of tiles you would have a Tilemap2dStorage
-    // component per layer.
-    let mut tile_storage = TileStorage::empty(map_size);
-
-    // For the purposes of this example, we consider a tilemap with rectangular tiles.
-    let map_type = TilemapType::Square;
-
-    let tilemap_entity = commands.spawn_empty().id();
-
-    // Spawn a 32 by 32 tilemap.
-    // Alternatively, you can use helpers::fill_tilemap.
-    for x in 0..map_size.x {
-        for y in 0..map_size.y {
-            let tile_pos = TilePos { x, y };
-            let tile_entity = commands
-                .spawn(TileBundle {
-                    position: tile_pos,
-                    tilemap_id: TilemapId(tilemap_entity),
-                    ..Default::default()
-                })
-                .id();
+    if let Some(world_position) = window
+        .cursor_position()
+        .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor))
+    {
+        for (mut transform, _) in cursor.iter_mut() {
+            transform.translation = world_position.extend(1.0);
         }
     }
 }
