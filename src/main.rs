@@ -26,7 +26,7 @@ pub const LIGHT: Color = Color::rgb(0.852, 0.844, 0.816);
 
 #[derive(AssetCollection, Resource)]
 pub struct ImageAssets {
-    #[asset(texture_atlas(tile_size_x = 16.0, tile_size_y = 16.0, columns = 2, rows = 1))]
+    #[asset(texture_atlas(tile_size_x = 16.0, tile_size_y = 16.0, columns = 7, rows = 1))]
     #[asset(path = "textures/cursor.png")]
     pub cursor: Handle<TextureAtlas>,
 }

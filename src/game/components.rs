@@ -35,9 +35,20 @@ pub enum Direction {
 pub struct Cursor;
 
 #[derive(Component)]
-pub struct TargetLock;
+pub struct TargetLock(pub usize);
 
 #[derive(Component)]
 pub struct Missile {
     pub dest: Vec2,
+    pub lock_id: usize,
+}
+
+#[derive(Resource)]
+pub struct IdCounter(pub usize);
+
+impl IdCounter {
+    pub fn next(&mut self) -> usize {
+        self.0 = self.0.wrapping_add(1);
+        self.0
+    }
 }

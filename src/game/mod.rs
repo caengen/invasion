@@ -1,7 +1,9 @@
 use self::{
-    components::PhysicsSet,
+    components::{IdCounter, PhysicsSet},
     effects::{flick_system, timed_removal_system},
-    systems::{animate_sprite, change_colors, game_keys, move_cursor, setup_cursor, teardown},
+    systems::{
+        animate_sprite, change_colors, game_keys, move_cursor, move_missile, setup_cursor, teardown,
+    },
 };
 use crate::GameState;
 use bevy::prelude::*;
@@ -23,10 +25,12 @@ impl Plugin for GamePlugin {
                     flick_system,
                     change_colors,
                     timed_removal_system,
+                    move_missile,
                 )
                     .in_set(OnUpdate(GameState::InGame)),
             )
             .configure_set(PhysicsSet::Movement.before(PhysicsSet::CollisionDetection))
-            .add_system(teardown.in_schedule(OnExit(GameState::InGame)));
+            .add_system(teardown.in_schedule(OnExit(GameState::InGame)))
+            .insert_resource(IdCounter(0));
     }
 }
