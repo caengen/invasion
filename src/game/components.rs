@@ -22,6 +22,27 @@ pub struct AnimationIndices {
     pub last: usize,
 }
 
+#[derive(Component)]
+pub struct AnimationSteps {
+    pub current: usize,
+    pub steps: Vec<usize>,
+}
+
+impl AnimationSteps {
+    pub fn next(&mut self) -> Option<usize> {
+        if self.current <= self.steps.len() {
+            let step = self.steps[self.current];
+            self.current += 1;
+            Some(step)
+        } else {
+            None
+        }
+    }
+    pub fn is_finished(&self) -> bool {
+        self.current == self.steps.len()
+    }
+}
+
 #[derive(Component, Deref, DerefMut)]
 pub struct AnimationTimer(pub Timer);
 

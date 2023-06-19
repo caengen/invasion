@@ -1,7 +1,7 @@
 use bevy::{prelude::*, transform};
 use std::time::Duration;
 
-use crate::{ImageAssets, MainCamera, SCREEN};
+use crate::{game::components::AnimationSteps, ImageAssets, MainCamera, SCREEN};
 
 use super::{
     components::{
@@ -96,10 +96,17 @@ pub fn move_missile(
                 SpriteSheetBundle {
                     texture_atlas: images.cursor.clone(),
                     sprite: TextureAtlasSprite::new(3),
-                    transform: Transform::from_translation(missile.dest.extend(1.0)),
+                    transform: Transform {
+                        translation: missile.dest.extend(1.0),
+                        scale: Vec3::splat(3.0),
+                        ..default()
+                    },
                     ..default()
                 },
-                AnimationIndices { first: 3, last: 7 },
+                AnimationSteps {
+                    current: 0,
+                    steps: Vec::from([3, 4, 5, 6, 7, 6, 5, 4, 3]),
+                },
                 AnimationTimer(Timer::from_seconds(0.25, TimerMode::Repeating)),
                 Explosion,
             ));
@@ -131,7 +138,7 @@ pub fn teardown(mut commands: Commands) {
     // }
 }
 
-pub fn animate_sprite(
+pub fn animate_sprite_indices(
     time: Res<Time>,
     mut query: Query<(
         &AnimationIndices,
@@ -147,6 +154,32 @@ pub fn animate_sprite(
             } else {
                 sprite.index + 1
             };
+        }
+    }
+}
+
+pub fn animate_sprite_steps(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(
+        Entity,
+        &mut AnimationSteps,
+        &mut AnimationTimer,
+        &mut TextureAtlasSprite,
+    )>,
+) {
+    for (entity, mut steps, mut timer, mut sprite) in &mut query {
+        timer.tick(time.delta());
+        if timer.just_finished() {
+            // todo: really really out of place
+            if steps.is_finished() {
+                commands.entity(entity).despawn();
+            } else {
+                let index = steps.next();
+                if let Some(index) = index {
+                    sprite.index = index;
+                }
+            }
         }
     }
 }

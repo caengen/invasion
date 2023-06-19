@@ -2,7 +2,8 @@ use self::{
     components::{IdCounter, PhysicsSet},
     effects::{flick_system, timed_removal_system},
     systems::{
-        animate_sprite, change_colors, game_keys, move_cursor, move_missile, setup_cursor, teardown,
+        animate_sprite_indices, animate_sprite_steps, change_colors, game_keys, move_cursor,
+        move_missile, setup_cursor, teardown,
     },
 };
 use crate::GameState;
@@ -20,7 +21,8 @@ impl Plugin for GamePlugin {
             .add_systems(
                 (
                     game_keys,
-                    animate_sprite,
+                    animate_sprite_indices,
+                    animate_sprite_steps,
                     move_cursor,
                     flick_system,
                     change_colors,
