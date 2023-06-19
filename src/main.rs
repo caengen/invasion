@@ -20,7 +20,7 @@ mod config;
 mod game;
 mod main_menu;
 
-pub const SCREEN: Vec2 = Vec2::from_array([512.0, 512.0]);
+pub const SCREEN: Vec2 = Vec2::from_array([495.0, 270.0]);
 pub const DARK: Color = Color::rgb(0.191, 0.184, 0.156);
 pub const LIGHT: Color = Color::rgb(0.852, 0.844, 0.816);
 
@@ -74,12 +74,12 @@ fn main() {
     )
     .add_state::<GameState>()
     .add_loading_state(
-        LoadingState::new(GameState::AssetLoading).continue_to_state(GameState::MainMenu),
+        LoadingState::new(GameState::AssetLoading).continue_to_state(GameState::InGame),
     )
     .insert_resource(Debug(cfg.debug))
     .add_collection_to_loading_state::<_, ImageAssets>(GameState::AssetLoading)
     .add_plugin(FrameTimeDiagnosticsPlugin::default())
-    // .add_plugin(WorldInspectorPlugin::default().run_if(input_toggle_active(true, KeyCode::Escape)))
+    .add_plugin(WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)))
     .add_plugin(RngPlugin::new().with_rng_seed(220718))
     .add_plugin(MainMenuPlugin)
     .add_plugin(GamePlugin)

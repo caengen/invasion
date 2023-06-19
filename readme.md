@@ -1,3 +1,12 @@
-# A simple starter project for 2d games in Bevy.
+# Invasion
 
-Examples include project structure, game states transitions, "pausing" game state, rendering of texts and sprites and updating of entities and resources.
+Objective: Stop the invasion.
+
+Run `cargo run`.
+
+### Keybindings
+
+| Key            | Action                          |
+| -------------- | ------------------------------- |
+| Mouse movement | Move sight                      |
+| LMB            | Shoot at current sight position |
