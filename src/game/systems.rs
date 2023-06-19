@@ -4,23 +4,18 @@ use std::time::Duration;
 use crate::{ImageAssets, MainCamera, SCREEN};
 
 use super::{
-    components::{AnimationIndices, AnimationTimer, Cursor, IdCounter, Missile, TargetLock},
+    components::{
+        AnimationIndices, AnimationTimer, Cursor, Explosion, IdCounter, Missile, TargetLock,
+    },
     effects::{Flick, TimedRemoval},
 };
 
 pub fn game_keys(
-    keyboard: Res<Input<KeyCode>>,
     buttons: Res<Input<MouseButton>>,
     cursor_pos: Query<&Transform, With<Cursor>>,
     mut id_counter: ResMut<IdCounter>,
     mut commands: Commands,
-    images: Res<ImageAssets>, // mut player: Query<(
-                              //     &Cursor,
-                              //     &mut Transform,
-                              //     &mut AnimationIndices,
-                              //     &mut TextureAtlasSprite,
-                              //     &mut AnimationTimer,
-                              // )>,
+    images: Res<ImageAssets>,
 ) {
     if buttons.just_pressed(MouseButton::Left) {
         let transform = cursor_pos.single();
@@ -78,6 +73,7 @@ pub fn move_missile(
     mut missiles: Query<(Entity, &Missile, &mut Transform), Without<TargetLock>>,
     target_locks: Query<(Entity, &TargetLock, &Transform), Without<Missile>>,
     time: Res<Time>,
+    images: Res<ImageAssets>,
 ) {
     for (entity, missile, mut transform) in missiles.iter_mut() {
         let direction = missile.dest - transform.translation.truncate();
@@ -94,6 +90,19 @@ pub fn move_missile(
             if let Some((entity, _, _)) = lock {
                 commands.entity(entity).despawn();
             }
+
+            // move this spawn to an event
+            commands.spawn((
+                SpriteSheetBundle {
+                    texture_atlas: images.cursor.clone(),
+                    sprite: TextureAtlasSprite::new(3),
+                    transform: Transform::from_translation(missile.dest.extend(1.0)),
+                    ..default()
+                },
+                AnimationIndices { first: 3, last: 7 },
+                AnimationTimer(Timer::from_seconds(0.25, TimerMode::Repeating)),
+                Explosion,
+            ));
         }
     }
 }

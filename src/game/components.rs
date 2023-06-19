@@ -43,6 +43,9 @@ pub struct Missile {
     pub lock_id: usize,
 }
 
+#[derive(Component)]
+pub struct Explosion;
+
 #[derive(Resource)]
 pub struct IdCounter(pub usize);
 
