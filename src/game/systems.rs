@@ -1,60 +1,48 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, transform};
 use std::time::Duration;
 
 use crate::{ImageAssets, MainCamera};
 
-use super::components::{AnimationIndices, AnimationTimer, Cursor};
+use super::{
+    components::{AnimationIndices, AnimationTimer, Cursor, TargetLock},
+    effects::{Flick, TimedRemoval},
+};
 
 pub fn game_keys(
     keyboard: Res<Input<KeyCode>>,
-    mut player: Query<(
-        &Cursor,
-        &mut Transform,
-        &mut AnimationIndices,
-        &mut TextureAtlasSprite,
-        &mut AnimationTimer,
-    )>,
+    buttons: Res<Input<MouseButton>>,
+    cursor_pos: Query<&Transform, With<Cursor>>,
+    mut commands: Commands,
+    images: Res<ImageAssets>, // mut player: Query<(
+                              //     &Cursor,
+                              //     &mut Transform,
+                              //     &mut AnimationIndices,
+                              //     &mut TextureAtlasSprite,
+                              //     &mut AnimationTimer,
+                              // )>,
 ) {
-    let mut direction = Vec2::ZERO;
-
-    if keyboard.any_pressed([KeyCode::Left, KeyCode::A]) {
-        direction.x -= 1.0;
+    if buttons.just_pressed(MouseButton::Left) {
+        let transform = cursor_pos.single();
+        commands.spawn((
+            SpriteSheetBundle {
+                texture_atlas: images.cursor.clone(),
+                sprite: TextureAtlasSprite::new(1),
+                transform: *transform,
+                ..default()
+            },
+            TargetLock {},
+            Flick {
+                duration: Timer::from_seconds(3.0, TimerMode::Repeating),
+                switch_timer: Timer::from_seconds(0.2, TimerMode::Repeating),
+            },
+            TimedRemoval(Timer::from_seconds(3.0, TimerMode::Once)),
+        ));
     }
-    if keyboard.any_pressed([KeyCode::Right, KeyCode::D]) {
-        direction.x += 1.0;
-    }
-    if keyboard.any_pressed([KeyCode::Up, KeyCode::W]) {
-        direction.y += 1.0;
-    }
-    if keyboard.any_pressed([KeyCode::Down, KeyCode::S]) {
-        direction.y -= 1.0;
-    }
+}
 
-    let move_speed = 1.0;
-    let move_delta = (direction * move_speed).extend(0.0);
-
-    for (_, mut transform, mut indices, mut sprite, mut timer) in player.iter_mut() {
-        if direction == Vec2::ZERO {
-            // update animation
-            indices.first = 0;
-            indices.last = 1;
-            sprite.index = usize::clamp(sprite.index, indices.first, indices.last);
-            timer.0.set_duration(Duration::from_millis(500));
-            continue;
-        }
-
-        transform.translation += move_delta;
-
-        // update animation
-        indices.first = 2;
-        indices.last = 3;
-        sprite.index = usize::clamp(sprite.index, indices.first, indices.last);
-        if move_delta.x < 0.0 {
-            sprite.flip_x = true;
-        } else if move_delta.x > 0.0 {
-            sprite.flip_x = false;
-        }
-        timer.0.set_duration(Duration::from_millis(200));
+pub fn change_colors(mut query: Query<(&mut Sprite), (With<TargetLock>)>) {
+    for mut sprite in query.iter_mut() {
+        sprite.color = Color::rgb(1.0, 0.0, 0.0);
     }
 }
 

@@ -55,7 +55,7 @@ pub fn _shrink_system(mut shrinking: Query<(&mut Transform, &mut Shrink)>, time:
     }
 }
 
-pub fn _timed_removal_system(
+pub fn timed_removal_system(
     mut commands: Commands,
     time: Res<Time>,
     mut query: Query<(Entity, &mut TimedRemoval, Without<DelayedVisibility>)>,

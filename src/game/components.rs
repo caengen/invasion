@@ -33,3 +33,11 @@ pub enum Direction {
 }
 #[derive(Component)]
 pub struct Cursor;
+
+#[derive(Component)]
+pub struct TargetLock;
+
+#[derive(Component)]
+pub struct Missile {
+    pub dest: Vec2,
+}
