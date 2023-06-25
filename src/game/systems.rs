@@ -1,11 +1,13 @@
 use bevy::{prelude::*, transform};
+use bevy_turborand::{DelegatedRng, GlobalRng, RngComponent};
 use std::time::Duration;
 
 use crate::{game::components::AnimationSteps, ImageAssets, MainCamera, SCREEN};
 
 use super::{
     components::{
-        AnimationIndices, AnimationTimer, Cursor, Explosion, IdCounter, Missile, TargetLock,
+        AnimationIndices, AnimationTimer, Cursor, EnemySpawn, Explosion, IdCounter, Missile,
+        TargetLock,
     },
     effects::{Flick, TimedRemoval},
 };
@@ -45,6 +47,45 @@ pub fn game_keys(
             Missile {
                 dest: transform.translation.truncate(),
                 lock_id: id,
+                vel: 500.0,
+            },
+        ));
+    }
+}
+
+pub fn spawn_enemy(
+    mut id_counter: ResMut<IdCounter>,
+    mut commands: Commands,
+    images: Res<ImageAssets>,
+    mut global_rng: ResMut<GlobalRng>,
+    mut enemy_spawn: ResMut<EnemySpawn>,
+    time: Res<Time>,
+) {
+    enemy_spawn.0.tick(time.delta());
+
+    if (enemy_spawn.0.just_finished()) {
+        enemy_spawn.0.reset();
+        let mut rng = RngComponent::from(&mut global_rng);
+        // lag random position fra topp med random dest
+        // fn ticker hvert sekund. Opprett en strek
+        // faen kan ikke tegne strek fordi eg har ikke polyogon rammeverket........
+        let origin_x = rng.usize(-SCREEN.x as usize..SCREEN.x as usize) as f32;
+        let sign = if rng.bool() { 1.0 } else { -1.0 };
+        let mut dest_x = sign * rng.usize(0..(SCREEN.x / 6.0) as usize) as f32;
+        if dest_x < -SCREEN.x || dest_x > SCREEN.x {
+            dest_x *= -1.0;
+        }
+        commands.spawn((
+            SpriteSheetBundle {
+                texture_atlas: images.cursor.clone(),
+                sprite: TextureAtlasSprite::new(3),
+                transform: Transform::from_translation(Vec3::new(origin_x, SCREEN.y / 2.0, 1.0)),
+                ..default()
+            },
+            Missile {
+                dest: Vec2::new(dest_x, -SCREEN.y / 2.0),
+                lock_id: id_counter.next(),
+                vel: 10.0,
             },
         ));
     }
@@ -78,7 +119,7 @@ pub fn move_missile(
     for (entity, missile, mut transform) in missiles.iter_mut() {
         let direction = missile.dest - transform.translation.truncate();
         let distance = direction.length();
-        let velocity = direction.normalize() * 500.0;
+        let velocity = direction.normalize() * missile.vel;
         let translation = velocity * time.delta_seconds();
         if distance > translation.length() {
             transform.translation += translation.extend(0.0);

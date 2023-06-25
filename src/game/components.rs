@@ -62,6 +62,7 @@ pub struct TargetLock(pub usize);
 pub struct Missile {
     pub dest: Vec2,
     pub lock_id: usize,
+    pub vel: f32,
 }
 
 #[derive(Component)]
@@ -69,6 +70,8 @@ pub struct Explosion;
 
 #[derive(Resource)]
 pub struct IdCounter(pub usize);
+#[derive(Resource)]
+pub struct EnemySpawn(pub Timer);
 
 impl IdCounter {
     pub fn next(&mut self) -> usize {

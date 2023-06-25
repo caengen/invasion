@@ -1,9 +1,11 @@
+use std::time::Duration;
+
 use self::{
-    components::{IdCounter, PhysicsSet},
+    components::{EnemySpawn, IdCounter, PhysicsSet},
     effects::{flick_system, timed_removal_system},
     systems::{
         animate_sprite_indices, animate_sprite_steps, change_colors, game_keys, move_cursor,
-        move_missile, setup_cursor, teardown,
+        move_missile, setup_cursor, spawn_enemy, teardown,
     },
 };
 use crate::GameState;
@@ -28,11 +30,16 @@ impl Plugin for GamePlugin {
                     change_colors,
                     timed_removal_system,
                     move_missile,
+                    spawn_enemy,
                 )
                     .in_set(OnUpdate(GameState::InGame)),
             )
             .configure_set(PhysicsSet::Movement.before(PhysicsSet::CollisionDetection))
             .add_system(teardown.in_schedule(OnExit(GameState::InGame)))
-            .insert_resource(IdCounter(0));
+            .insert_resource(IdCounter(0))
+            .insert_resource(EnemySpawn(Timer::new(
+                Duration::from_secs(3),
+                TimerMode::Repeating,
+            )));
     }
 }
