@@ -29,6 +29,9 @@ pub struct ImageAssets {
     #[asset(texture_atlas(tile_size_x = 16.0, tile_size_y = 16.0, columns = 8, rows = 1))]
     #[asset(path = "textures/cursor.png")]
     pub cursor: Handle<TextureAtlas>,
+    #[asset(texture_atlas(tile_size_x = 32.0, tile_size_y = 32.0, columns = 4, rows = 1))]
+    #[asset(path = "textures/explosion.png")]
+    pub explosion: Handle<TextureAtlas>,
 }
 
 #[derive(States, Hash, Clone, PartialEq, Eq, Debug, Default)]

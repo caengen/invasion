@@ -2,12 +2,12 @@ use bevy::{prelude::*, transform};
 use bevy_turborand::{DelegatedRng, GlobalRng, RngComponent};
 use std::time::Duration;
 
-use crate::{game::components::AnimationSteps, ImageAssets, MainCamera, SCREEN};
+use crate::{game::components::StepCursor, ImageAssets, MainCamera, SCREEN};
 
 use super::{
     components::{
-        AnimationIndices, AnimationTimer, Cursor, EnemySpawn, Explosion, IdCounter, Missile,
-        TargetLock,
+        AnimationIndices, AnimationStepper, Cursor, CursorTimer, EnemySpawn, Engulfable, Explosion,
+        HitBoxStepper, IdCounter, Missile, TargetLock,
     },
     effects::{Flick, TimedRemoval},
 };
@@ -68,7 +68,7 @@ pub fn spawn_enemy(
         let mut rng = RngComponent::from(&mut global_rng);
         // lag random position fra topp med random dest
         // fn ticker hvert sekund. Opprett en strek
-        // faen kan ikke tegne strek fordi eg har ikke polyogon rammeverket........
+        // kan ikke tegne strek fordi eg har ikke polyogon rammeverket........
         let origin_x = rng.usize(-SCREEN.x as usize..SCREEN.x as usize) as f32;
         let sign = if rng.bool() { 1.0 } else { -1.0 };
         let mut dest_x = sign * rng.usize(0..(SCREEN.x / 6.0) as usize) as f32;
@@ -87,8 +87,15 @@ pub fn spawn_enemy(
                 lock_id: id_counter.next(),
                 vel: 10.0,
             },
+            Engulfable,
         ));
     }
+}
+
+pub fn remove_flame_engulfed(
+    mut commands: Commands,
+    explosions: Query<(&Transform, With<Explosion>)>,
+) {
 }
 
 pub fn change_colors(mut query: Query<(&mut Sprite), (With<TargetLock>)>) {
@@ -135,8 +142,8 @@ pub fn move_missile(
             // move this spawn to an event
             commands.spawn((
                 SpriteSheetBundle {
-                    texture_atlas: images.cursor.clone(),
-                    sprite: TextureAtlasSprite::new(3),
+                    texture_atlas: images.explosion.clone(),
+                    sprite: TextureAtlasSprite::new(0),
                     transform: Transform {
                         translation: missile.dest.extend(1.0),
                         scale: Vec3::splat(3.0),
@@ -144,11 +151,14 @@ pub fn move_missile(
                     },
                     ..default()
                 },
-                AnimationSteps {
+                StepCursor {
                     current: 0,
-                    steps: Vec::from([3, 4, 5, 6, 7, 6, 5, 4, 3]),
+                    steps: Vec::from([0, 1, 2, 3, 3, 2, 1, 0]),
                 },
-                AnimationTimer(Timer::from_seconds(0.25, TimerMode::Repeating)),
+                // HitBoxStepper {
+                //     steps: Vec::from([2, 8, 12, 16, 16, 12, 8, 2]),
+                // },
+                CursorTimer(Timer::from_seconds(0.25, TimerMode::Repeating)),
                 Explosion,
             ));
         }
@@ -181,11 +191,7 @@ pub fn teardown(mut commands: Commands) {
 
 pub fn animate_sprite_indices(
     time: Res<Time>,
-    mut query: Query<(
-        &AnimationIndices,
-        &mut AnimationTimer,
-        &mut TextureAtlasSprite,
-    )>,
+    mut query: Query<(&AnimationIndices, &mut CursorTimer, &mut TextureAtlasSprite)>,
 ) {
     for (indices, mut timer, mut sprite) in &mut query {
         timer.tick(time.delta());
@@ -204,8 +210,8 @@ pub fn animate_sprite_steps(
     time: Res<Time>,
     mut query: Query<(
         Entity,
-        &mut AnimationSteps,
-        &mut AnimationTimer,
+        &mut StepCursor,
+        &mut CursorTimer,
         &mut TextureAtlasSprite,
     )>,
 ) {

@@ -23,12 +23,29 @@ pub struct AnimationIndices {
 }
 
 #[derive(Component)]
-pub struct AnimationSteps {
+pub struct StepCursor {
     pub current: usize,
     pub steps: Vec<usize>,
 }
 
-impl AnimationSteps {
+impl StepCursor {}
+
+trait Stepper {
+    fn next(&mut self) -> Option<usize>;
+    fn is_finished(&self) -> bool;
+}
+
+#[derive(Component)]
+pub struct AnimationStepper {
+    pub steps: Vec<usize>,
+}
+
+#[derive(Component)]
+pub struct HitBoxStepper {
+    pub steps: Vec<usize>,
+}
+
+impl StepCursor {
     pub fn next(&mut self) -> Option<usize> {
         if self.current <= self.steps.len() {
             let step = self.steps[self.current];
@@ -38,13 +55,14 @@ impl AnimationSteps {
             None
         }
     }
+
     pub fn is_finished(&self) -> bool {
         self.current == self.steps.len()
     }
 }
 
 #[derive(Component, Deref, DerefMut)]
-pub struct AnimationTimer(pub Timer);
+pub struct CursorTimer(pub Timer);
 
 pub enum Direction {
     Left,
@@ -79,3 +97,6 @@ impl IdCounter {
         self.0
     }
 }
+
+#[derive(Component)]
+pub struct Engulfable;
