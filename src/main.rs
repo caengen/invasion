@@ -10,7 +10,7 @@ use bevy::{
 };
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use bevy_turborand::RngPlugin;
+use bevy_turborand::prelude::RngPlugin;
 use config::Debug;
 use game::GamePlugin;
 use main_menu::*;
@@ -81,12 +81,14 @@ fn main() {
     )
     .insert_resource(Debug(cfg.debug))
     .add_collection_to_loading_state::<_, ImageAssets>(GameState::AssetLoading)
-    .add_plugin(FrameTimeDiagnosticsPlugin::default())
-    .add_plugin(WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)))
-    .add_plugin(RngPlugin::new().with_rng_seed(220718))
-    .add_plugin(MainMenuPlugin)
-    .add_plugin(GamePlugin)
-    .add_startup_system(setup);
+    .add_plugins(FrameTimeDiagnosticsPlugin::default())
+    // .add_plugins(
+    //     WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)),
+    // )
+    .add_plugins(RngPlugin::new().with_rng_seed(220718))
+    .add_plugins(MainMenuPlugin)
+    .add_plugins(GamePlugin)
+    .add_systems(Startup, setup);
 
     app.run();
 }

@@ -19,8 +19,9 @@ mod systems;
 pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems((setup_cursor.in_schedule(OnEnter(GameState::InGame)),))
+        app.add_systems(OnEnter(GameState::InGame), setup_cursor)
             .add_systems(
+                Update,
                 (
                     game_keys,
                     animate_sprite_indices,
@@ -32,10 +33,13 @@ impl Plugin for GamePlugin {
                     move_missile,
                     spawn_enemy,
                 )
-                    .in_set(OnUpdate(GameState::InGame)),
+                    .run_if(in_state(GameState::InGame)),
             )
-            .configure_set(PhysicsSet::Movement.before(PhysicsSet::CollisionDetection))
-            .add_system(teardown.in_schedule(OnExit(GameState::InGame)))
+            .configure_set(
+                Update,
+                PhysicsSet::Movement.before(PhysicsSet::CollisionDetection),
+            )
+            .add_systems(OnExit(GameState::InGame), teardown)
             .insert_resource(IdCounter(0))
             .insert_resource(EnemySpawn(Timer::new(
                 Duration::from_secs(3),

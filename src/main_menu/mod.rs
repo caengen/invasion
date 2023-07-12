@@ -10,8 +10,11 @@ mod systems;
 pub struct MainMenuPlugin;
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(setup.in_schedule(OnEnter(GameState::MainMenu)))
-            .add_system(transition_to_game.in_set(OnUpdate(GameState::MainMenu)))
-            .add_system(teardown.in_schedule(OnExit(GameState::MainMenu)));
+        app.add_systems(OnEnter(GameState::MainMenu), setup)
+            .add_systems(
+                Update,
+                transition_to_game.run_if(in_state(GameState::MainMenu)),
+            )
+            .add_systems(OnExit(GameState::MainMenu), teardown);
     }
 }

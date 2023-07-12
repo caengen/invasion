@@ -49,10 +49,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         )])
         .with_style(Style {
             position_type: PositionType::Absolute,
-            position: UiRect {
-                top: Val::Percent(30.0),
-                ..default()
-            },
+            top: Val::Percent(30.0),
             margin: UiRect {
                 left: Val::Auto,
                 right: Val::Auto,
