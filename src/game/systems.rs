@@ -146,19 +146,19 @@ pub fn move_missile(
                     sprite: TextureAtlasSprite::new(0),
                     transform: Transform {
                         translation: missile.dest.extend(1.0),
-                        scale: Vec3::splat(3.0),
+                        // scale: Vec3::splat(3.0),
                         ..default()
                     },
                     ..default()
                 },
                 StepCursor {
                     current: 0,
-                    steps: Vec::from([0, 1, 2, 3, 3, 2, 1, 0]),
+                    steps: Vec::from([0, 1, 2, 3, 3, 3, 2, 2, 1, 0]),
                 },
-                // HitBoxStepper {
-                //     steps: Vec::from([2, 8, 12, 16, 16, 12, 8, 2]),
-                // },
-                CursorTimer(Timer::from_seconds(0.25, TimerMode::Repeating)),
+                HitBoxStepper {
+                    steps: Vec::from([2, 8, 12, 16, 16, 12, 8, 2]),
+                },
+                CursorTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
                 Explosion,
             ));
         }
