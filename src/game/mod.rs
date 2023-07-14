@@ -4,8 +4,8 @@ use self::{
     components::{EnemySpawn, IdCounter, PhysicsSet},
     effects::{flick_system, timed_removal_system},
     systems::{
-        animate_sprite_indices, animate_sprite_steps, change_colors, game_keys, move_cursor,
-        move_missile, setup_cursor, spawn_enemy, teardown,
+        animate_sprite_indices, animate_sprite_steps, change_colors, flame_engulf_system,
+        game_keys, move_cursor, move_missile, setup_cursor, spawn_enemy, teardown,
     },
 };
 use crate::GameState;
@@ -31,6 +31,7 @@ impl Plugin for GamePlugin {
                     change_colors,
                     timed_removal_system,
                     move_missile,
+                    flame_engulf_system.after(move_missile),
                     spawn_enemy,
                 )
                     .run_if(in_state(GameState::InGame)),

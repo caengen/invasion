@@ -1,11 +1,9 @@
 use bevy::{
-    asset,
     core_pipeline::clear_color::ClearColorConfig,
     diagnostic::FrameTimeDiagnosticsPlugin,
-    input::common_conditions::input_toggle_active,
     log::{Level, LogPlugin},
     prelude::*,
-    window::{Cursor, PresentMode},
+    window::PresentMode,
     DefaultPlugins,
 };
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};

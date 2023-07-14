@@ -22,26 +22,14 @@ pub struct AnimationIndices {
     pub last: usize,
 }
 
-#[derive(Component)]
-pub struct StepCursor {
-    pub current: usize,
-    pub steps: Vec<usize>,
-}
-
-impl StepCursor {}
-
 trait Stepper {
     fn next(&mut self) -> Option<usize>;
     fn is_finished(&self) -> bool;
 }
 
 #[derive(Component)]
-pub struct AnimationStepper {
-    pub steps: Vec<usize>,
-}
-
-#[derive(Component)]
-pub struct HitBoxStepper {
+pub struct StepCursor {
+    pub current: usize,
     pub steps: Vec<usize>,
 }
 
@@ -61,8 +49,38 @@ impl StepCursor {
     }
 }
 
+#[derive(Component)]
+pub struct AnimationStepper {
+    pub steps: Vec<usize>,
+}
+
+#[derive(Component)]
+pub struct FlameEngulfRadiusStepper {
+    pub current: usize,
+    pub steps: Vec<usize>,
+}
+
+// something, something proc macro...
+impl FlameEngulfRadiusStepper {
+    pub fn next(&mut self) -> Option<usize> {
+        if self.current <= self.steps.len() {
+            let step = self.steps[self.current];
+            self.current += 1;
+            Some(step)
+        } else {
+            None
+        }
+    }
+
+    pub fn is_finished(&self) -> bool {
+        self.current == self.steps.len()
+    }
+}
+
 #[derive(Component, Deref, DerefMut)]
 pub struct CursorTimer(pub Timer);
+#[derive(Component, Deref, DerefMut)]
+pub struct FlameEngulfStepTimer(pub Timer);
 
 pub enum Direction {
     Left,

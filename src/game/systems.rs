@@ -7,7 +7,7 @@ use crate::{game::components::StepCursor, ImageAssets, MainCamera, SCREEN};
 use super::{
     components::{
         AnimationIndices, AnimationStepper, Cursor, CursorTimer, EnemySpawn, Engulfable, Explosion,
-        HitBoxStepper, IdCounter, Missile, TargetLock,
+        FlameEngulfRadiusStepper, FlameEngulfStepTimer, IdCounter, Missile, TargetLock,
     },
     effects::{Flick, TimedRemoval},
 };
@@ -47,7 +47,7 @@ pub fn game_keys(
             Missile {
                 dest: transform.translation.truncate(),
                 lock_id: id,
-                vel: 500.0,
+                vel: 250.0,
             },
         ));
     }
@@ -85,7 +85,7 @@ pub fn spawn_enemy(
             Missile {
                 dest: Vec2::new(dest_x, -SCREEN.y / 2.0),
                 lock_id: id_counter.next(),
-                vel: 10.0,
+                vel: 25.0,
             },
             Engulfable,
         ));
@@ -155,10 +155,12 @@ pub fn move_missile(
                     current: 0,
                     steps: Vec::from([0, 1, 2, 3, 3, 3, 2, 2, 1, 0]),
                 },
-                HitBoxStepper {
-                    steps: Vec::from([2, 8, 12, 16, 16, 12, 8, 2]),
+                FlameEngulfRadiusStepper {
+                    current: 0,
+                    steps: Vec::from([2, 8, 12, 16, 16, 16, 12, 12, 8, 2]),
                 },
                 CursorTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+                FlameEngulfStepTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
                 Explosion,
             ));
         }
@@ -225,6 +227,39 @@ pub fn animate_sprite_steps(
                 let index = steps.next();
                 if let Some(index) = index {
                     sprite.index = index;
+                }
+            }
+        }
+    }
+}
+
+pub fn flame_engulf_system(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut flames: Query<(
+        Entity,
+        &Transform,
+        &mut FlameEngulfRadiusStepper,
+        &mut FlameEngulfStepTimer,
+        Without<Engulfable>,
+    )>,
+    mut engulfables: Query<(Entity, &Transform, With<Engulfable>)>,
+) {
+    for (flame_entity, flame_transform, mut stepper, mut timer, _) in flames.iter_mut() {
+        timer.tick(time.delta());
+        if timer.just_finished() {
+            if stepper.is_finished() {
+                commands
+                    .entity(flame_entity)
+                    .remove::<FlameEngulfRadiusStepper>();
+            } else {
+                if let Some(radius) = stepper.next() {
+                    for (entity, transform, _) in engulfables.iter_mut() {
+                        let distance = flame_transform.translation.distance(transform.translation);
+                        if distance <= radius as f32 {
+                            commands.entity(entity).despawn();
+                        }
+                    }
                 }
             }
         }
