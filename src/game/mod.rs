@@ -26,12 +26,7 @@ impl Plugin for GamePlugin {
                 Update,
                 (
                     // always run these systems
-                    (
-                        move_cursor,
-                        animate_sprite_indices,
-                        animate_sprite_steps,
-                        health_ui,
-                    ),
+                    (move_cursor, animate_sprite_indices, animate_sprite_steps),
                     // run these systems if we are in the InGame state
                     (
                         game_keys,
@@ -42,6 +37,7 @@ impl Plugin for GamePlugin {
                         missile_arrival_event_listner,
                         flame_engulf_system.after(move_missile),
                         spawn_enemy,
+                        health_ui,
                     )
                         .run_if(in_state(GameState::InGame)),
                     // run these systems if we are in the GameOver state
