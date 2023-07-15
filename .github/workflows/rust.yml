@@ -1,0 +1,30 @@
+name: wasm build
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download wasm target
+        run: rustup target add wasm32-unknown-unknown
+      - name: Install wasm-bindgen
+        run: cargo install wasm-bindgen-cli
+      - name: Build
+        run: cargo build --release --target wasm32-unknown-unknown
+      - name: Wasm-bindgen
+        run: wasm-bindgen --out-dir ./docs --target web "./target/wasm32-unknown-unknown/release/invasion.wasm"
+      - name: Commit wasm
+        uses: EndBug/add-and-commit@v9
+        with:
+          github_token: ${{ secrets.PASS_TOKEN }}
+          add: "./docs"

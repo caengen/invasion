@@ -413,21 +413,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy-basic-2d-starter"
-version = "0.1.0"
-dependencies = [
- "bevy 0.11.0",
- "bevy-inspector-egui",
- "bevy_asset_loader",
- "bevy_ecs_tilemap",
- "bevy_egui 0.21.0",
- "bevy_prototype_lyon",
- "bevy_turborand",
- "derive_more",
- "getrandom",
-]
-
-[[package]]
 name = "bevy-inspector-egui"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3503,6 +3488,21 @@ dependencies = [
  "js-sys",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "invasion"
+version = "0.1.0"
+dependencies = [
+ "bevy 0.11.0",
+ "bevy-inspector-egui",
+ "bevy_asset_loader",
+ "bevy_ecs_tilemap",
+ "bevy_egui 0.21.0",
+ "bevy_prototype_lyon",
+ "bevy_turborand",
+ "derive_more",
+ "getrandom",
 ]
 
 [[package]]
