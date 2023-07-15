@@ -1,5 +1,10 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::HashSet};
 use derive_more::From;
+
+#[derive(From)]
+pub enum Scoring {
+    Missile = 50,
+}
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
 pub enum PhysicsSet {
@@ -113,10 +118,30 @@ pub struct Missile {
 }
 
 #[derive(Component)]
-pub struct Explosion;
+pub struct Explosion {
+    pub score: usize,
+    pub combo: usize,
+}
+impl Explosion {
+    pub fn new() -> Self {
+        Self { score: 0, combo: 0 }
+    }
+
+    pub fn add_score(&mut self, score: Scoring) {
+        self.score += score as usize;
+        self.combo += 1;
+    }
+
+    pub fn calculated_score(&self) -> usize {
+        self.score * self.combo
+    }
+}
 
 #[derive(Resource)]
 pub struct IdCounter(pub usize);
+#[derive(Resource)]
+pub struct Score(pub usize);
+
 #[derive(Resource)]
 pub struct EnemySpawn(pub Timer);
 

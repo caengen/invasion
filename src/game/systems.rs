@@ -12,7 +12,7 @@ use super::{
     components::{
         AnimationIndices, AnimationStepper, Cursor, CursorTimer, Enemy, EnemySpawn, Engulfable,
         Explosion, FlameEngulfRadiusStepper, FlameEngulfStepTimer, Health, HealthBar, IdCounter,
-        Missile, MissileArrivalEvent, Player, TargetLock,
+        Missile, MissileArrivalEvent, Player, Score, Scoring, TargetLock,
     },
     effects::{Flick, TimedRemoval},
 };
@@ -120,6 +120,16 @@ pub fn setup_cursor(mut commands: Commands, images: Res<ImageAssets>) {
     ));
 }
 
+pub fn score_ui(mut commands: Commands, mut contexts: EguiContexts, score: Res<Score>) {
+    egui::Area::new("Score")
+        .anchor(Align2::LEFT_TOP, egui::emath::vec2(10., 5.))
+        .show(contexts.ctx_mut(), |ui| {
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
+                ui.label(format!("{:0>7}", score.0));
+            });
+        });
+}
+
 pub fn health_ui(
     mut commands: Commands,
     images: Res<ImageAssets>,
@@ -195,7 +205,7 @@ pub fn missile_arrival_event_listner(
             },
             CursorTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
             FlameEngulfStepTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
-            Explosion,
+            Explosion::new(),
         ));
 
         // Damage player
@@ -327,14 +337,17 @@ pub fn flame_engulf_system(
         &Transform,
         &mut FlameEngulfRadiusStepper,
         &mut FlameEngulfStepTimer,
+        &mut Explosion,
         Without<Engulfable>,
     )>,
     mut engulfables: Query<(Entity, &Transform, With<Engulfable>)>,
+    mut score: ResMut<Score>,
 ) {
-    for (flame_entity, flame_transform, mut stepper, mut timer, _) in flames.iter_mut() {
+    for (flame_entity, flame_transform, mut stepper, mut timer, mut expl, _) in flames.iter_mut() {
         timer.tick(time.delta());
         if timer.just_finished() {
             if stepper.is_finished() {
+                score.0 += expl.calculated_score();
                 commands
                     .entity(flame_entity)
                     .remove::<FlameEngulfRadiusStepper>();
@@ -344,6 +357,8 @@ pub fn flame_engulf_system(
                         let distance = flame_transform.translation.distance(transform.translation);
                         if distance <= radius as f32 {
                             commands.entity(entity).despawn();
+                            // todo: map enemy type to score only missiles as of now
+                            expl.add_score(Scoring::Missile);
                         }
                     }
                 }

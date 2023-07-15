@@ -1,16 +1,16 @@
 use std::time::Duration;
 
 use self::{
-    components::{EnemySpawn, IdCounter, MissileArrivalEvent, PhysicsSet},
+    components::{EnemySpawn, IdCounter, MissileArrivalEvent, PhysicsSet, Score},
     effects::{flick_system, timed_removal_system},
     systems::{
         animate_sprite_indices, animate_sprite_steps, change_colors, flame_engulf_system,
         game_keys, game_over_ui, health_ui, missile_arrival_event_listner, move_cursor,
-        move_missile, reset_game_listener, setup_cursor, spawn_enemy_missile, teardown,
+        move_missile, reset_game_listener, score_ui, setup_cursor, spawn_enemy_missile, teardown,
     },
 };
 use crate::GameState;
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::HashSet};
 
 mod collision;
 mod components;
@@ -26,7 +26,12 @@ impl Plugin for GamePlugin {
                 Update,
                 (
                     // always run these systems
-                    (move_cursor, animate_sprite_indices, animate_sprite_steps),
+                    (
+                        move_cursor,
+                        animate_sprite_indices,
+                        animate_sprite_steps,
+                        score_ui,
+                    ),
                     // run these systems if we are in the InGame state
                     (
                         game_keys,
@@ -50,6 +55,7 @@ impl Plugin for GamePlugin {
                 PhysicsSet::Movement.before(PhysicsSet::CollisionDetection),
             )
             .insert_resource(IdCounter(0))
+            .insert_resource(Score(0))
             .insert_resource(EnemySpawn(Timer::new(
                 Duration::from_secs(3),
                 TimerMode::Repeating,
