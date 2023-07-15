@@ -7,6 +7,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
+use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_turborand::prelude::RngPlugin;
 use config::Debug;
@@ -24,18 +25,23 @@ pub const LIGHT: Color = Color::rgb(0.852, 0.844, 0.816);
 
 #[derive(AssetCollection, Resource)]
 pub struct ImageAssets {
-    #[asset(texture_atlas(tile_size_x = 16.0, tile_size_y = 16.0, columns = 8, rows = 1))]
+    #[asset(texture_atlas(tile_size_x = 16.0, tile_size_y = 16.0, columns = 8, rows = 2))]
     #[asset(path = "textures/cursor.png")]
     pub cursor: Handle<TextureAtlas>,
     #[asset(texture_atlas(tile_size_x = 32.0, tile_size_y = 32.0, columns = 4, rows = 1))]
     #[asset(path = "textures/explosion.png")]
     pub explosion: Handle<TextureAtlas>,
+    #[asset(path = "textures/heart-full.png")]
+    pub heart_full: Handle<Image>,
+    #[asset(path = "textures/heart-empty.png")]
+    pub heart_empty: Handle<Image>,
 }
 
 #[derive(States, Hash, Clone, PartialEq, Eq, Debug, Default)]
 pub enum GameState {
     MainMenu,
     InGame,
+    GameOver,
     #[default]
     AssetLoading,
 }
@@ -84,6 +90,7 @@ fn main() {
     //     WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)),
     // )
     .add_plugins(RngPlugin::new().with_rng_seed(220718))
+    .add_plugins(EguiPlugin)
     .add_plugins(MainMenuPlugin)
     .add_plugins(GamePlugin)
     .add_systems(Startup, setup);

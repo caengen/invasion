@@ -7,6 +7,17 @@ pub enum PhysicsSet {
     CollisionDetection,
 }
 
+#[derive(Component)]
+pub struct Player;
+#[derive(Component)]
+pub struct Enemy;
+#[derive(Component)]
+pub struct HealthBar;
+#[derive(Component)]
+pub struct Health {
+    pub current: u8,
+    pub max: u8,
+}
 #[derive(Debug, Component, From)]
 pub struct Vel(pub Vec2);
 
@@ -94,7 +105,7 @@ pub struct Cursor;
 #[derive(Component)]
 pub struct TargetLock(pub usize);
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Missile {
     pub dest: Vec2,
     pub lock_id: usize,
@@ -118,3 +129,10 @@ impl IdCounter {
 
 #[derive(Component)]
 pub struct Engulfable;
+
+#[derive(Event)]
+pub struct MissileArrivalEvent {
+    pub entity: Entity,
+    pub missile: Missile,
+    pub is_enemy: bool,
+}
