@@ -58,7 +58,7 @@ pub fn game_keys(
     }
 }
 
-pub fn spawn_enemy(
+pub fn spawn_enemy_missile(
     mut id_counter: ResMut<IdCounter>,
     mut commands: Commands,
     images: Res<ImageAssets>,
@@ -93,7 +93,7 @@ pub fn spawn_enemy(
         Missile {
             dest: Vec2::new(dest_x, -SCREEN.y / 2.0),
             lock_id: id_counter.next(),
-            vel: 25.0,
+            vel: 50.0,
         },
         Engulfable,
         Enemy,
@@ -255,10 +255,26 @@ pub fn move_cursor(
     }
 }
 
-pub fn teardown(mut commands: Commands) {
-    // for (entity, _) in texts.iter() {
-    //     commands.entity(entity).despawn();
-    // }
+pub fn teardown(
+    mut commands: Commands,
+    missiles: Query<Entity, (With<Missile>, Without<Player>)>,
+    player: Query<Entity, With<Player>>,
+) {
+    for missile in missiles.iter() {
+        commands.entity(missile).despawn_recursive();
+    }
+    for player in player.iter() {
+        commands.entity(player).despawn_recursive();
+    }
+}
+
+pub fn reset_game_listener(
+    keyboard: Res<Input<KeyCode>>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    if keyboard.just_pressed(KeyCode::R) {
+        next_state.set(GameState::InGame);
+    }
 }
 
 pub fn animate_sprite_indices(

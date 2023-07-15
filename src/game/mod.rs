@@ -6,7 +6,7 @@ use self::{
     systems::{
         animate_sprite_indices, animate_sprite_steps, change_colors, flame_engulf_system,
         game_keys, game_over_ui, health_ui, missile_arrival_event_listner, move_cursor,
-        move_missile, setup_cursor, spawn_enemy, teardown,
+        move_missile, reset_game_listener, setup_cursor, spawn_enemy_missile, teardown,
     },
 };
 use crate::GameState;
@@ -36,12 +36,12 @@ impl Plugin for GamePlugin {
                         move_missile,
                         missile_arrival_event_listner,
                         flame_engulf_system.after(move_missile),
-                        spawn_enemy,
+                        spawn_enemy_missile,
                         health_ui,
                     )
                         .run_if(in_state(GameState::InGame)),
                     // run these systems if we are in the GameOver state
-                    (game_over_ui).run_if(in_state(GameState::GameOver)),
+                    (game_over_ui, reset_game_listener).run_if(in_state(GameState::GameOver)),
                 ),
             )
             .add_systems(OnExit(GameState::InGame), teardown)
