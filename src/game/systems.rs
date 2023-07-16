@@ -115,6 +115,16 @@ pub fn setup_cursor(mut commands: Commands, images: Res<ImageAssets>) {
             ..default()
         },
         Cursor {},
+    ));
+
+    // player
+    commands.spawn((
+        SpriteSheetBundle {
+            texture_atlas: images.cannon.clone(),
+            sprite: TextureAtlasSprite::new(0),
+            transform: Transform::from_translation(Vec3::new(0.0, -SCREEN.y / 2.0, 1.0)),
+            ..default()
+        },
         Player {},
         Health { max: 3, current: 3 },
     ));
@@ -133,7 +143,7 @@ pub fn score_ui(mut commands: Commands, mut contexts: EguiContexts, score: Res<S
 pub fn health_ui(
     mut commands: Commands,
     images: Res<ImageAssets>,
-    player: Query<(&Health, With<Cursor>)>,
+    player: Query<(&Health, With<Player>)>,
     mut contexts: EguiContexts,
 ) {
     let heart_image_id = contexts.add_image(images.heart_full.clone_weak());
@@ -261,6 +271,19 @@ pub fn move_cursor(
     {
         for (mut transform, _) in cursor.iter_mut() {
             transform.translation = world_position.extend(1.0);
+        }
+    }
+}
+
+pub fn rotate_player(
+    mut player: Query<&mut Transform, (With<Player>, Without<Cursor>)>,
+    cursor: Query<&Transform, (With<Cursor>, Without<Player>)>,
+) {
+    for mut transform in player.iter_mut() {
+        for cursor in cursor.iter() {
+            let direction = cursor.translation.truncate() - transform.translation.truncate();
+            let angle = direction.y.atan2(direction.x) - 90.0_f32.to_radians();
+            transform.rotation = Quat::from_rotation_z(angle);
         }
     }
 }

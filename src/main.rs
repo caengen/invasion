@@ -1,4 +1,5 @@
 use bevy::{
+    asset::ChangeWatcher,
     core_pipeline::clear_color::ClearColorConfig,
     diagnostic::FrameTimeDiagnosticsPlugin,
     log::{Level, LogPlugin},
@@ -13,7 +14,7 @@ use bevy_turborand::prelude::RngPlugin;
 use config::Debug;
 use game::GamePlugin;
 use main_menu::*;
-use std::{env, process};
+use std::{env, process, time::Duration};
 
 mod config;
 mod game;
@@ -35,6 +36,9 @@ pub struct ImageAssets {
     pub heart_full: Handle<Image>,
     #[asset(path = "textures/heart-empty.png")]
     pub heart_empty: Handle<Image>,
+    #[asset(texture_atlas(tile_size_x = 32.0, tile_size_y = 32.0, columns = 1, rows = 1))]
+    #[asset(path = "textures/cannon.png")]
+    pub cannon: Handle<TextureAtlas>,
 }
 
 #[derive(States, Hash, Clone, PartialEq, Eq, Debug, Default)]
@@ -77,7 +81,13 @@ fn main() {
                 level: Level::DEBUG,
                 filter: "wgpu=error,bevy_render=info,bevy_ecs=trace".to_string(),
             })
-            .set(ImagePlugin::default_nearest()),
+            .set(ImagePlugin::default_nearest())
+            .set(AssetPlugin {
+                watch_for_changes: Some(ChangeWatcher {
+                    delay: Duration::from_millis(200),
+                }),
+                ..Default::default()
+            }),
     )
     .add_state::<GameState>()
     .add_loading_state(
