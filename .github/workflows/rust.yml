@@ -31,5 +31,5 @@ jobs:
       - name: Commit wasm
         uses: EndBug/add-and-commit@v9
         with:
-          github_token: ${{ secrets.PASS_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           add: "./docs"
