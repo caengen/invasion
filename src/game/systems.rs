@@ -11,7 +11,7 @@ use super::{
     components::{
         AnimationIndices, Cursor, CursorTimer, Enemy, EnemySpawn, Engulfable, Explosion,
         FlameEngulfRadiusStepper, FlameEngulfStepTimer, Health, IdCounter, Missile,
-        MissileArrivalEvent, Player, Score, Scoring, TargetLock,
+        MissileArrivalEvent, MissileExplosionEvent, Player, Score, Scoring, TargetLock,
     },
     effects::{Flick, TimedRemoval},
 };
@@ -197,6 +197,45 @@ pub fn game_over_ui(mut contexts: EguiContexts) {
         .show(contexts.ctx_mut(), |ui| ui.label("Game Over!"));
 }
 
+pub fn explosion_system(
+    mut commands: Commands,
+    mut explosion_event: EventReader<MissileExplosionEvent>,
+    images: Res<ImageAssets>,
+    missiles: Query<(Entity, &Transform), With<Missile>>,
+) {
+    for MissileExplosionEvent { entity } in explosion_event.iter() {
+        for missile in missiles.iter() {
+            if missile.0 == *entity {
+                commands.entity(missile.0).despawn();
+
+                commands.spawn((
+                    SpriteSheetBundle {
+                        texture_atlas: images.explosion.clone(),
+                        sprite: TextureAtlasSprite::new(0),
+                        transform: Transform {
+                            translation: missile.1.translation,
+                            // scale: Vec3::splat(3.0),
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    StepCursor {
+                        current: 0,
+                        steps: Vec::from([0, 1, 2, 3, 3, 3, 2, 2, 1, 0]),
+                    },
+                    FlameEngulfRadiusStepper {
+                        current: 0,
+                        steps: Vec::from([2, 8, 12, 16, 16, 16, 12, 12, 8, 2]),
+                    },
+                    CursorTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+                    FlameEngulfStepTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+                    Explosion::new(),
+                ));
+            }
+        }
+    }
+}
+
 pub fn missile_arrival_event_listner(
     mut commands: Commands,
     mut missile_expl_evnt: EventReader<MissileArrivalEvent>,
@@ -204,6 +243,7 @@ pub fn missile_arrival_event_listner(
     mut player_health: Query<&mut Health, With<Player>>,
     target_locks: Query<(Entity, &TargetLock, &Transform), Without<Missile>>,
     mut next_state: ResMut<NextState<GameState>>,
+    mut explosion_event: EventWriter<MissileExplosionEvent>,
 ) {
     for MissileArrivalEvent {
         entity: id,
@@ -211,8 +251,7 @@ pub fn missile_arrival_event_listner(
         is_enemy,
     } in missile_expl_evnt.iter()
     {
-        // Despawn missile and target lock
-        commands.entity(*id).despawn();
+        // Despawn target lock
         let lock = target_locks
             .iter()
             .find(|(_, lock, _)| lock.0 == missile.lock_id);
@@ -221,29 +260,7 @@ pub fn missile_arrival_event_listner(
         }
 
         // Spawn explosion
-        commands.spawn((
-            SpriteSheetBundle {
-                texture_atlas: images.explosion.clone(),
-                sprite: TextureAtlasSprite::new(0),
-                transform: Transform {
-                    translation: missile.dest.extend(1.0),
-                    // scale: Vec3::splat(3.0),
-                    ..default()
-                },
-                ..default()
-            },
-            StepCursor {
-                current: 0,
-                steps: Vec::from([0, 1, 2, 3, 3, 3, 2, 2, 1, 0]),
-            },
-            FlameEngulfRadiusStepper {
-                current: 0,
-                steps: Vec::from([2, 8, 12, 16, 16, 16, 12, 12, 8, 2]),
-            },
-            CursorTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
-            FlameEngulfStepTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
-            Explosion::new(),
-        ));
+        explosion_event.send(MissileExplosionEvent { entity: *id });
 
         // Damage player
         if *is_enemy && missile.dest.y <= -(SCREEN.y / 2.0).ceil() {
@@ -390,8 +407,9 @@ pub fn flame_engulf_system(
         &mut Explosion,
         Without<Engulfable>,
     )>,
-    mut engulfables: Query<(Entity, &Transform, With<Engulfable>)>,
+    mut engulfables: Query<(Entity, &Transform, With<Engulfable>, Has<Missile>)>,
     mut score: ResMut<Score>,
+    mut explosion_event: EventWriter<MissileExplosionEvent>,
 ) {
     for (flame_entity, flame_transform, mut stepper, mut timer, mut expl, _) in flames.iter_mut() {
         timer.tick(time.delta());
@@ -403,12 +421,17 @@ pub fn flame_engulf_system(
                     .remove::<FlameEngulfRadiusStepper>();
             } else {
                 if let Some(radius) = stepper.next() {
-                    for (entity, transform, _) in engulfables.iter_mut() {
+                    for (entity, transform, _, is_missile) in engulfables.iter_mut() {
                         let distance = flame_transform.translation.distance(transform.translation);
                         if distance <= radius as f32 {
-                            commands.entity(entity).despawn();
-                            // todo: map enemy type to score only missiles as of now
-                            expl.add_score(Scoring::Missile);
+                            if is_missile {
+                                explosion_event.send(MissileExplosionEvent { entity });
+                                expl.add_score(Scoring::Missile);
+                            } else {
+                                commands.entity(entity).despawn();
+                                //todo: fix this later
+                                expl.add_score(Scoring::Missile);
+                            }
                         }
                     }
                 }

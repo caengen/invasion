@@ -1,13 +1,15 @@
 use std::time::Duration;
 
 use self::{
-    components::{EnemySpawn, IdCounter, MissileArrivalEvent, PhysicsSet, Score},
+    components::{
+        EnemySpawn, IdCounter, MissileArrivalEvent, MissileExplosionEvent, PhysicsSet, Score,
+    },
     effects::{flick_system, timed_removal_system},
     systems::{
-        animate_sprite_indices, animate_sprite_steps, change_colors, flame_engulf_system,
-        game_keys, game_over_ui, health_ui, missile_arrival_event_listner, move_cursor,
-        move_missile, reset_game_listener, rotate_player, score_ui, setup_fonts, setup_player,
-        spawn_enemy_missile, teardown,
+        animate_sprite_indices, animate_sprite_steps, change_colors, explosion_system,
+        flame_engulf_system, game_keys, game_over_ui, health_ui, missile_arrival_event_listner,
+        move_cursor, move_missile, reset_game_listener, rotate_player, score_ui, setup_fonts,
+        setup_player, spawn_enemy_missile, teardown,
     },
 };
 use crate::GameState;
@@ -22,6 +24,7 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<MissileArrivalEvent>()
+            .add_event::<MissileExplosionEvent>()
             .add_systems(OnEnter(GameState::InGame), (setup_player, setup_fonts))
             .add_systems(
                 Update,
@@ -43,6 +46,7 @@ impl Plugin for GamePlugin {
                             move_missile,
                             timed_removal_system,
                             missile_arrival_event_listner,
+                            explosion_system,
                             flame_engulf_system,
                         )
                             .chain(),

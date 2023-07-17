@@ -161,3 +161,8 @@ pub struct MissileArrivalEvent {
     pub missile: Missile,
     pub is_enemy: bool,
 }
+
+#[derive(Event)]
+pub struct MissileExplosionEvent {
+    pub entity: Entity,
+}
