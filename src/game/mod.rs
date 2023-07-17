@@ -8,7 +8,7 @@ use self::{
         explosion_event_listener_system, explosion_system, flame_engulf_system, game_keys,
         game_over_ui, health_ui, missile_arrival_event_listner, move_cursor, move_missile,
         move_ufo, reset_game_listener, rotate_player, score_ui, setup_fonts, setup_player,
-        spawn_enemy_missile, teardown,
+        spawn_enemies, teardown,
     },
 };
 use crate::GameState;
@@ -41,7 +41,7 @@ impl Plugin for GamePlugin {
                         flick_system,
                         change_colors,
                         (
-                            spawn_enemy_missile,
+                            spawn_enemies,
                             move_missile,
                             move_ufo,
                             timed_removal_system,

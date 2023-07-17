@@ -14,7 +14,7 @@ use super::{
         AnimationIndices, AnimationStep, ChainedMeta, Cursor, Enemy, EnemySpawn, Engulfable,
         Explodable, Explosion, ExplosionEvent, ExplosionMode, FlameRadius, Health, IdCounter,
         Missile, MissileArrivalEvent, Player, Score, Scoring, Stepper, TargetLock, Ufo,
-        MISSILE_SPEED, PLAYER_MISSILE_SPEED, UFO_SPEED,
+        MISSILE_SPAWN_MAX, MISSILE_SPAWN_MIN, MISSILE_SPEED, PLAYER_MISSILE_SPEED, UFO_SPEED,
     },
     effects::{Flick, TimedRemoval},
 };
@@ -61,7 +61,7 @@ pub fn game_keys(
     }
 }
 
-pub fn spawn_enemy_missile(
+pub fn spawn_enemies(
     mut id_counter: ResMut<IdCounter>,
     mut commands: Commands,
     images: Res<ImageAssets>,
@@ -80,55 +80,17 @@ pub fn spawn_enemy_missile(
 
     // spawn ufo
     if rng.chance(0.2) {
-        let origin_y = rng.i32((-(SCREEN.y / 3.0) as i32)..((SCREEN.y / 2.0) as i32 - 30)) as f32;
-        let sign = if rng.bool() { 1.0 } else { -1.0 };
-        let origin_x = sign * (SCREEN.x / 2.0);
-
-        commands.spawn((
-            SpriteSheetBundle {
-                texture_atlas: images.cursor.clone(),
-                sprite: TextureAtlasSprite::new(8),
-                transform: Transform::from_translation(Vec3::new(origin_x, origin_y, 1.0)),
-                ..default()
-            },
-            AnimationIndices {
-                first: 8,
-                last: 11,
-                timer: Timer::from_seconds(0.2, TimerMode::Repeating),
-            },
-            Ufo(vec2(-origin_x, origin_y)),
-            Explodable,
-            Engulfable,
-            Enemy,
-        ));
-
-        return;
+        spawner::ufo(&mut commands, &mut rng, images.cursor.clone());
     }
-    // lag random position fra topp med random dest
-    // fn ticker hvert sekund. Opprett en strek
-    // kan ikke tegne strek fordi eg har ikke polyogon rammeverket........
-    let origin_x = rng.usize(-SCREEN.x as usize..SCREEN.x as usize) as f32;
-    let sign = if rng.bool() { 1.0 } else { -1.0 };
-    let mut dest_x = sign * rng.usize(0..(SCREEN.x / 6.0) as usize) as f32;
-    if dest_x < -SCREEN.x || dest_x > SCREEN.x {
-        dest_x *= -1.0;
+
+    for _ in 0..rng.usize(MISSILE_SPAWN_MIN..MISSILE_SPAWN_MAX) {
+        spawner::missile(
+            &mut commands,
+            &mut rng,
+            &mut id_counter,
+            images.cursor.clone(),
+        );
     }
-    commands.spawn((
-        SpriteSheetBundle {
-            texture_atlas: images.cursor.clone(),
-            sprite: TextureAtlasSprite::new(3),
-            transform: Transform::from_translation(Vec3::new(origin_x, SCREEN.y / 2.0, 1.0)),
-            ..default()
-        },
-        Missile {
-            dest: Vec2::new(dest_x, -SCREEN.y / 2.0),
-            lock_id: id_counter.next(),
-            vel: MISSILE_SPEED,
-        },
-        Explodable,
-        Engulfable,
-        Enemy,
-    ));
 }
 
 pub fn change_colors(mut query: Query<&mut Sprite, With<TargetLock>>) {
@@ -410,26 +372,28 @@ pub fn flame_engulf_system(
                 if let Some(radius) = stepper.next() {
                     for (entity, transform, _, is_missile) in engulfables.iter_mut() {
                         let distance = flame_transform.translation.distance(transform.translation);
-                        if distance <= *radius as f32 {
-                            if is_missile {
-                                explosion_event.send(ExplosionEvent {
-                                    pos: transform.translation,
-                                    mode: ExplosionMode::Single,
-                                });
-                                commands.entity(entity).despawn();
-                                expl.add_score(Scoring::Missile);
-                            } else {
-                                // is ufo, more points
-                                explosion_event.send(ExplosionEvent {
-                                    pos: transform.translation,
-                                    mode: ExplosionMode::Chained(ChainedMeta {
-                                        timer: Timer::from_seconds(0.2, TimerMode::Repeating),
-                                        remaining: 5,
-                                    }),
-                                });
-                                commands.entity(entity).despawn();
-                                expl.add_score(Scoring::Ufo);
-                            }
+                        if distance > *radius as f32 {
+                            continue;
+                        }
+
+                        if is_missile {
+                            explosion_event.send(ExplosionEvent {
+                                pos: transform.translation,
+                                mode: ExplosionMode::Single,
+                            });
+                            commands.entity(entity).despawn();
+                            expl.add_score(Scoring::Missile);
+                        } else {
+                            // is ufo, more points
+                            explosion_event.send(ExplosionEvent {
+                                pos: transform.translation,
+                                mode: ExplosionMode::Chained(ChainedMeta {
+                                    timer: Timer::from_seconds(0.2, TimerMode::Repeating),
+                                    remaining: 5,
+                                }),
+                            });
+                            commands.entity(entity).despawn();
+                            expl.add_score(Scoring::Ufo);
                         }
                     }
                 }
@@ -547,4 +511,77 @@ pub fn game_over_ui(mut contexts: EguiContexts) {
     egui::Area::new("gameover")
         .anchor(Align2::CENTER_CENTER, egui::emath::vec2(0., 0.))
         .show(contexts.ctx_mut(), |ui| ui.label("Game Over!"));
+}
+
+mod spawner {
+    use bevy::{
+        math::vec2,
+        prelude::*,
+        sprite::{SpriteSheetBundle, TextureAtlasSprite},
+    };
+    use bevy_turborand::{DelegatedRng, RngComponent};
+
+    use crate::{
+        game::components::{
+            AnimationIndices, Enemy, Engulfable, Explodable, IdCounter, Missile, Ufo, MISSILE_SPEED,
+        },
+        SCREEN,
+    };
+
+    pub fn ufo(commands: &mut Commands, rng: &mut RngComponent, images: Handle<TextureAtlas>) {
+        let origin_y = rng.i32((-(SCREEN.y / 3.0) as i32)..((SCREEN.y / 2.0) as i32 - 30)) as f32;
+        let sign = if rng.bool() { 1.0 } else { -1.0 };
+        let origin_x = sign * (SCREEN.x / 2.0);
+
+        commands.spawn((
+            SpriteSheetBundle {
+                texture_atlas: images,
+                sprite: TextureAtlasSprite::new(8),
+                transform: Transform::from_translation(Vec3::new(origin_x, origin_y, 1.0)),
+                ..default()
+            },
+            AnimationIndices {
+                first: 8,
+                last: 11,
+                timer: Timer::from_seconds(0.2, TimerMode::Repeating),
+            },
+            Ufo(vec2(-origin_x, origin_y)),
+            Explodable,
+            Engulfable,
+            Enemy,
+        ));
+    }
+
+    pub fn missile(
+        commands: &mut Commands,
+        rng: &mut RngComponent,
+        id_counter: &mut ResMut<IdCounter>,
+        images: Handle<TextureAtlas>,
+    ) {
+        // lag random position fra topp med random dest
+        // fn ticker hvert sekund. Opprett en strek
+        // kan ikke tegne strek fordi eg har ikke polyogon rammeverket........
+        let origin_x = rng.usize(-(SCREEN.x / 2.0) as usize..(SCREEN.x / 2.0) as usize) as f32;
+        let sign = if rng.bool() { 1.0 } else { -1.0 };
+        let mut dest_x = sign * rng.usize(0..(SCREEN.x / 4.0) as usize) as f32;
+        if dest_x < -SCREEN.x || dest_x > SCREEN.x {
+            dest_x *= -1.0;
+        }
+        commands.spawn((
+            SpriteSheetBundle {
+                texture_atlas: images,
+                sprite: TextureAtlasSprite::new(3),
+                transform: Transform::from_translation(Vec3::new(origin_x, SCREEN.y / 2.0, 1.0)),
+                ..default()
+            },
+            Missile {
+                dest: Vec2::new(dest_x, -SCREEN.y / 2.0),
+                lock_id: id_counter.next(),
+                vel: MISSILE_SPEED,
+            },
+            Explodable,
+            Engulfable,
+            Enemy,
+        ));
+    }
 }
