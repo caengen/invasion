@@ -75,21 +75,21 @@ pub fn spawn_enemy_missile(
     let mut rng = RngComponent::from(&mut global_rng);
 
     // spawn ufo
-    if rng.chance(0.20) {
-        let origin_y = rng.usize((-SCREEN.y as usize / 3)..(SCREEN.y as usize - 20)) as f32;
+    if rng.chance(0.2) {
+        let origin_y = rng.i32((-(SCREEN.y / 3.0) as i32)..((SCREEN.y / 2.0) as i32 - 30)) as f32;
         let sign = if rng.bool() { 1.0 } else { -1.0 };
-        let origin_x = sign * SCREEN.x;
+        let origin_x = sign * (SCREEN.x / 2.0);
 
         commands.spawn((
             SpriteSheetBundle {
                 texture_atlas: images.cursor.clone(),
-                sprite: TextureAtlasSprite::new(9),
+                sprite: TextureAtlasSprite::new(8),
                 transform: Transform::from_translation(Vec3::new(origin_x, origin_y, 1.0)),
                 ..default()
             },
             AnimationIndices {
-                first: 9,
-                last: 12,
+                first: 8,
+                last: 11,
                 timer: Timer::from_seconds(0.2, TimerMode::Repeating),
             },
             Ufo(vec2(-origin_x, origin_y)),
@@ -215,11 +215,10 @@ pub fn missile_arrival_event_listner(
 
 pub fn move_ufo(mut commands: Commands, mut ufos: Query<(Entity, &Ufo, &mut Transform)>) {
     for (entity, ufo, mut transform) in ufos.iter_mut() {
-        let direction = ufo.0 - transform.translation.truncate();
-        let distance = direction.length();
-        let velocity = direction.normalize() * 10.0;
-        let translation = velocity * 0.01;
-        if distance > translation.length() {
+        let dir = ufo.0 - transform.translation.truncate();
+        let dist = dir.length();
+        let translation = dir.normalize() * 0.5;
+        if dist > translation.length() {
             // move the ufo
             transform.translation += translation.extend(0.0);
         } else {
