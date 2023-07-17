@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::{prelude::*, utils::HashSet};
 use derive_more::From;
 
@@ -32,27 +34,21 @@ pub struct Pos(pub Vec2);
 #[derive(Debug, Component, From)]
 pub struct Bounding(pub f32);
 
-#[derive(Component)]
-pub struct AnimationIndices {
-    pub first: usize,
-    pub last: usize,
-}
-
-trait Stepper {
-    fn next(&mut self) -> Option<usize>;
-    fn is_finished(&self) -> bool;
-}
+pub struct AnimationStep;
+pub struct FlameRadius;
 
 #[derive(Component)]
-pub struct StepCursor {
+pub struct Stepper<T, U> {
+    pub marker: T,
     pub current: usize,
-    pub steps: Vec<usize>,
+    pub steps: Vec<U>,
+    pub timer: Timer,
 }
 
-impl StepCursor {
-    pub fn next(&mut self) -> Option<usize> {
+impl<T, U> Stepper<T, U> {
+    pub fn next(&mut self) -> Option<&U> {
         if self.current <= self.steps.len() {
-            let step = self.steps[self.current];
+            let step = &self.steps[self.current];
             self.current += 1;
             Some(step)
         } else {
@@ -64,39 +60,6 @@ impl StepCursor {
         self.current == self.steps.len()
     }
 }
-
-#[derive(Component)]
-pub struct AnimationStepper {
-    pub steps: Vec<usize>,
-}
-
-#[derive(Component)]
-pub struct FlameEngulfRadiusStepper {
-    pub current: usize,
-    pub steps: Vec<usize>,
-}
-
-// something, something proc macro...
-impl FlameEngulfRadiusStepper {
-    pub fn next(&mut self) -> Option<usize> {
-        if self.current <= self.steps.len() {
-            let step = self.steps[self.current];
-            self.current += 1;
-            Some(step)
-        } else {
-            None
-        }
-    }
-
-    pub fn is_finished(&self) -> bool {
-        self.current == self.steps.len()
-    }
-}
-
-#[derive(Component, Deref, DerefMut)]
-pub struct CursorTimer(pub Timer);
-#[derive(Component, Deref, DerefMut)]
-pub struct FlameEngulfStepTimer(pub Timer);
 
 pub enum Direction {
     Left,

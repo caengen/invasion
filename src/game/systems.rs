@@ -5,13 +5,13 @@ use bevy_egui::{
 };
 use bevy_turborand::{DelegatedRng, GlobalRng, RngComponent};
 
-use crate::{game::components::StepCursor, GameState, ImageAssets, MainCamera, SCREEN};
+use crate::{GameState, ImageAssets, MainCamera, SCREEN};
 
 use super::{
     components::{
-        AnimationIndices, Cursor, CursorTimer, Enemy, EnemySpawn, Engulfable, Explosion,
-        FlameEngulfRadiusStepper, FlameEngulfStepTimer, Health, IdCounter, Missile,
-        MissileArrivalEvent, MissileExplosionEvent, Player, Score, Scoring, TargetLock,
+        AnimationStep, Cursor, Enemy, EnemySpawn, Engulfable, Explosion, FlameRadius, Health,
+        IdCounter, Missile, MissileArrivalEvent, MissileExplosionEvent, Player, Score, Scoring,
+        Stepper, TargetLock,
     },
     effects::{Flick, TimedRemoval},
 };
@@ -219,16 +219,18 @@ pub fn explosion_system(
                         },
                         ..default()
                     },
-                    StepCursor {
+                    Stepper {
+                        marker: AnimationStep,
                         current: 0,
                         steps: Vec::from([0, 1, 2, 3, 3, 3, 2, 2, 1, 0]),
+                        timer: Timer::from_seconds(0.1, TimerMode::Repeating),
                     },
-                    FlameEngulfRadiusStepper {
+                    Stepper {
+                        marker: FlameRadius {},
                         current: 0,
                         steps: Vec::from([2, 8, 12, 16, 16, 16, 12, 12, 8, 2]),
+                        timer: Timer::from_seconds(0.1, TimerMode::Repeating),
                     },
-                    CursorTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
-                    FlameEngulfStepTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
                     Explosion::new(),
                 ));
             }
@@ -354,42 +356,25 @@ pub fn reset_game_listener(
     }
 }
 
-pub fn animate_sprite_indices(
-    time: Res<Time>,
-    mut query: Query<(&AnimationIndices, &mut CursorTimer, &mut TextureAtlasSprite)>,
-) {
-    for (indices, mut timer, mut sprite) in &mut query {
-        timer.tick(time.delta());
-        if timer.just_finished() {
-            sprite.index = if sprite.index == indices.last {
-                indices.first
-            } else {
-                sprite.index + 1
-            };
-        }
-    }
-}
-
 pub fn animate_sprite_steps(
     mut commands: Commands,
     time: Res<Time>,
     mut query: Query<(
         Entity,
-        &mut StepCursor,
-        &mut CursorTimer,
+        &mut Stepper<AnimationStep, i32>,
         &mut TextureAtlasSprite,
     )>,
 ) {
-    for (entity, mut steps, mut timer, mut sprite) in &mut query {
-        timer.tick(time.delta());
-        if timer.just_finished() {
+    for (entity, mut stepper, mut sprite) in &mut query {
+        stepper.timer.tick(time.delta());
+        if stepper.timer.just_finished() {
             // todo: really really out of place
-            if steps.is_finished() {
+            if stepper.is_finished() {
                 commands.entity(entity).despawn();
             } else {
-                let index = steps.next();
+                let index = stepper.next();
                 if let Some(index) = index {
-                    sprite.index = index;
+                    sprite.index = *index as usize;
                 }
             }
         }
@@ -402,8 +387,7 @@ pub fn flame_engulf_system(
     mut flames: Query<(
         Entity,
         &Transform,
-        &mut FlameEngulfRadiusStepper,
-        &mut FlameEngulfStepTimer,
+        &mut Stepper<FlameRadius, i32>,
         &mut Explosion,
         Without<Engulfable>,
     )>,
@@ -411,19 +395,19 @@ pub fn flame_engulf_system(
     mut score: ResMut<Score>,
     mut explosion_event: EventWriter<MissileExplosionEvent>,
 ) {
-    for (flame_entity, flame_transform, mut stepper, mut timer, mut expl, _) in flames.iter_mut() {
-        timer.tick(time.delta());
-        if timer.just_finished() {
+    for (flame_entity, flame_transform, mut stepper, mut expl, _) in flames.iter_mut() {
+        stepper.timer.tick(time.delta());
+        if stepper.timer.just_finished() {
             if stepper.is_finished() {
                 score.0 += expl.calculated_score();
                 commands
                     .entity(flame_entity)
-                    .remove::<FlameEngulfRadiusStepper>();
+                    .remove::<Stepper<FlameRadius, i32>>();
             } else {
                 if let Some(radius) = stepper.next() {
                     for (entity, transform, _, is_missile) in engulfables.iter_mut() {
                         let distance = flame_transform.translation.distance(transform.translation);
-                        if distance <= radius as f32 {
+                        if distance <= *radius as f32 {
                             if is_missile {
                                 explosion_event.send(MissileExplosionEvent { entity });
                                 expl.add_score(Scoring::Missile);
