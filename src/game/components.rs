@@ -6,6 +6,7 @@ use derive_more::From;
 #[derive(From)]
 pub enum Scoring {
     Missile = 50,
+    Ufo = 1000,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
@@ -16,6 +17,8 @@ pub enum PhysicsSet {
 
 #[derive(Component)]
 pub struct Player;
+#[derive(Component)]
+pub struct Ufo(pub Vec2);
 #[derive(Component)]
 pub struct Enemy;
 #[derive(Component)]
@@ -37,6 +40,12 @@ pub struct Bounding(pub f32);
 pub struct AnimationStep;
 pub struct FlameRadius;
 
+#[derive(Component)]
+pub struct AnimationIndices {
+    pub first: usize,
+    pub last: usize,
+    pub timer: Timer,
+}
 #[derive(Component)]
 pub struct Stepper<T, U> {
     pub marker: T,
