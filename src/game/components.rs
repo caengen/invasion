@@ -159,6 +159,6 @@ pub struct MissileArrivalEvent {
 
 #[derive(Event)]
 pub struct ExplosionEvent {
-    pub entity: Entity,
+    pub pos: Vec3,
     pub mode: ExplosionMode,
 }

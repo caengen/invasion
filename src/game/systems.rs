@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use bevy::{ecs::query::Has, math::vec2, prelude::*};
 use bevy_egui::{
     egui::{self, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, RichText},
@@ -9,10 +11,10 @@ use crate::{GameState, ImageAssets, MainCamera, SCREEN};
 
 use super::{
     components::{
-        AnimationIndices, AnimationStep, Cursor, Enemy, EnemySpawn, Engulfable, Explodable,
-        Explosion, ExplosionEvent, ExplosionMode, FlameRadius, Health, IdCounter, Missile,
-        MissileArrivalEvent, Player, Score, Scoring, Stepper, TargetLock, Ufo, MISSILE_SPEED,
-        PLAYER_MISSILE_SPEED, UFO_SPEED,
+        AnimationIndices, AnimationStep, ChainedMeta, Cursor, Enemy, EnemySpawn, Engulfable,
+        Explodable, Explosion, ExplosionEvent, ExplosionMode, FlameRadius, Health, IdCounter,
+        Missile, MissileArrivalEvent, Player, Score, Scoring, Stepper, TargetLock, Ufo,
+        MISSILE_SPEED, PLAYER_MISSILE_SPEED, UFO_SPEED,
     },
     effects::{Flick, TimedRemoval},
 };
@@ -95,6 +97,7 @@ pub fn spawn_enemy_missile(
                 timer: Timer::from_seconds(0.2, TimerMode::Repeating),
             },
             Ufo(vec2(-origin_x, origin_y)),
+            Explodable,
             Engulfable,
             Enemy,
         ));
@@ -131,91 +134,6 @@ pub fn spawn_enemy_missile(
 pub fn change_colors(mut query: Query<&mut Sprite, With<TargetLock>>) {
     for mut sprite in query.iter_mut() {
         sprite.color = Color::rgb(1.0, 0.0, 0.0);
-    }
-}
-
-pub fn explosion_system(
-    mut commands: Commands,
-    mut explosion_event: EventReader<ExplosionEvent>,
-    images: Res<ImageAssets>,
-    explodables: Query<(Entity, &Transform), With<Explodable>>,
-) {
-    for ExplosionEvent { entity, mode } in explosion_event.iter() {
-        for (ex_entity, ex_transform) in explodables.iter() {
-            if ex_entity == *entity {
-                commands.entity(ex_entity).despawn();
-
-                commands.spawn((
-                    SpriteSheetBundle {
-                        texture_atlas: images.explosion.clone(),
-                        sprite: TextureAtlasSprite::new(0),
-                        transform: Transform {
-                            translation: ex_transform.translation,
-                            // scale: Vec3::splat(3.0),
-                            ..default()
-                        },
-                        ..default()
-                    },
-                    Stepper {
-                        marker: AnimationStep,
-                        current: 0,
-                        steps: Vec::from([0, 1, 2, 3, 3, 3, 2, 2, 1, 0]),
-                        timer: Timer::from_seconds(0.1, TimerMode::Repeating),
-                    },
-                    Stepper {
-                        marker: FlameRadius {},
-                        current: 0,
-                        steps: Vec::from([2, 8, 12, 16, 16, 16, 12, 12, 8, 2]),
-                        timer: Timer::from_seconds(0.1, TimerMode::Repeating),
-                    },
-                    Explosion::new(mode.clone()),
-                ));
-            }
-        }
-    }
-}
-
-pub fn missile_arrival_event_listner(
-    mut commands: Commands,
-    mut missile_expl_evnt: EventReader<MissileArrivalEvent>,
-    images: Res<ImageAssets>,
-    mut player_health: Query<&mut Health, With<Player>>,
-    target_locks: Query<(Entity, &TargetLock, &Transform), Without<Missile>>,
-    mut next_state: ResMut<NextState<GameState>>,
-    mut explosion_event: EventWriter<ExplosionEvent>,
-) {
-    for MissileArrivalEvent {
-        entity: id,
-        missile,
-        is_enemy,
-    } in missile_expl_evnt.iter()
-    {
-        // Despawn target lock
-        let lock = target_locks
-            .iter()
-            .find(|(_, lock, _)| lock.0 == missile.lock_id);
-        if let Some((entity, _, _)) = lock {
-            commands.entity(entity).despawn();
-        }
-
-        // Spawn explosion
-        explosion_event.send(ExplosionEvent {
-            entity: *id,
-            mode: ExplosionMode::Single,
-        });
-
-        // Damage player
-        if *is_enemy && missile.dest.y <= -(SCREEN.y / 2.0).ceil() {
-            let mut health = player_health.single_mut();
-            if health.current > 0 {
-                health.current -= 1;
-            }
-
-            // should be moved to a separate system
-            if health.current == 0 {
-                next_state.set(GameState::GameOver);
-            }
-        }
     }
 }
 
@@ -344,6 +262,128 @@ pub fn animate_sprite_steps(
     }
 }
 
+pub fn explosion_system(
+    mut explosions: Query<(&Transform, &mut Explosion)>,
+    mut explosion_event: EventWriter<ExplosionEvent>,
+    mut global_rng: ResMut<GlobalRng>,
+    time: Res<Time>,
+) {
+    let mut rng = RngComponent::from(&mut global_rng);
+
+    for (transform, mut explosion) in explosions.iter_mut() {
+        match explosion.mode {
+            ExplosionMode::Chained(ref mut meta) => {
+                if meta.remaining == 0 {
+                    return;
+                }
+
+                meta.timer.tick(time.delta());
+
+                if meta.timer.just_finished() {
+                    let next_pos = transform.translation
+                        + Vec3::new(rng.i32(-15..15) as f32, rng.i32(-15..15) as f32, 0.0);
+                    explosion_event.send(ExplosionEvent {
+                        pos: next_pos,
+                        mode: ExplosionMode::Chained(ChainedMeta {
+                            remaining: meta.remaining - 1,
+                            timer: meta.timer.clone(),
+                        }),
+                    });
+
+                    // need to prevent the same explosion to be handled multiple times
+                    explosion.mode = ExplosionMode::Single;
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+pub fn explosion_event_listener_system(
+    mut commands: Commands,
+    mut explosion_event: EventReader<ExplosionEvent>,
+    images: Res<ImageAssets>,
+) {
+    for ExplosionEvent { pos, mode } in explosion_event.iter() {
+        let explosion_mode = match mode {
+            ExplosionMode::Single => mode.clone(),
+            ExplosionMode::Chained(meta) => ExplosionMode::Chained(ChainedMeta {
+                timer: meta.timer.clone(),
+                remaining: meta.remaining - 1,
+            }),
+        };
+        commands.spawn((
+            SpriteSheetBundle {
+                texture_atlas: images.explosion.clone(),
+                sprite: TextureAtlasSprite::new(0),
+                transform: Transform {
+                    translation: *pos,
+                    // scale: Vec3::splat(3.0),
+                    ..default()
+                },
+                ..default()
+            },
+            Stepper {
+                marker: AnimationStep,
+                current: 0,
+                steps: Vec::from([0, 1, 2, 3, 3, 3, 2, 2, 1, 0]),
+                timer: Timer::from_seconds(0.1, TimerMode::Repeating),
+            },
+            Stepper {
+                marker: FlameRadius {},
+                current: 0,
+                steps: Vec::from([2, 8, 12, 16, 16, 16, 12, 12, 8, 2]),
+                timer: Timer::from_seconds(0.1, TimerMode::Repeating),
+            },
+            Explosion::new(explosion_mode),
+        ));
+    }
+}
+
+pub fn missile_arrival_event_listner(
+    mut commands: Commands,
+    mut missile_expl_evnt: EventReader<MissileArrivalEvent>,
+    mut player_health: Query<&mut Health, With<Player>>,
+    target_locks: Query<(Entity, &TargetLock, &Transform), Without<Missile>>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut explosion_event: EventWriter<ExplosionEvent>,
+) {
+    for MissileArrivalEvent {
+        entity: id,
+        missile,
+        is_enemy,
+    } in missile_expl_evnt.iter()
+    {
+        // Despawn target lock
+        let lock = target_locks
+            .iter()
+            .find(|(_, lock, _)| lock.0 == missile.lock_id);
+        if let Some((entity, _, _)) = lock {
+            commands.entity(entity).despawn();
+        }
+
+        // Spawn explosion
+        explosion_event.send(ExplosionEvent {
+            pos: missile.dest.extend(1.0),
+            mode: ExplosionMode::Single,
+        });
+        commands.entity(*id).despawn();
+
+        // Damage player
+        if *is_enemy && missile.dest.y <= -(SCREEN.y / 2.0).ceil() {
+            let mut health = player_health.single_mut();
+            if health.current > 0 {
+                health.current -= 1;
+            }
+
+            // should be moved to a separate system
+            if health.current == 0 {
+                next_state.set(GameState::GameOver);
+            }
+        }
+    }
+}
+
 pub fn flame_engulf_system(
     mut commands: Commands,
     time: Res<Time>,
@@ -373,13 +413,20 @@ pub fn flame_engulf_system(
                         if distance <= *radius as f32 {
                             if is_missile {
                                 explosion_event.send(ExplosionEvent {
-                                    entity,
+                                    pos: transform.translation,
                                     mode: ExplosionMode::Single,
                                 });
+                                commands.entity(entity).despawn();
                                 expl.add_score(Scoring::Missile);
                             } else {
                                 // is ufo, more points
-                                //todo: fix this later
+                                explosion_event.send(ExplosionEvent {
+                                    pos: transform.translation,
+                                    mode: ExplosionMode::Chained(ChainedMeta {
+                                        timer: Timer::from_seconds(0.2, TimerMode::Repeating),
+                                        remaining: 5,
+                                    }),
+                                });
                                 commands.entity(entity).despawn();
                                 expl.add_score(Scoring::Ufo);
                             }
