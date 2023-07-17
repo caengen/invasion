@@ -1,9 +1,7 @@
 use std::time::Duration;
 
 use self::{
-    components::{
-        EnemySpawn, IdCounter, MissileArrivalEvent, MissileExplosionEvent, PhysicsSet, Score,
-    },
+    components::{EnemySpawn, ExplosionEvent, IdCounter, MissileArrivalEvent, PhysicsSet, Score},
     effects::{flick_system, timed_removal_system},
     systems::{
         animate_sprite_indices, animate_sprite_steps, change_colors, explosion_system,
@@ -24,7 +22,7 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<MissileArrivalEvent>()
-            .add_event::<MissileExplosionEvent>()
+            .add_event::<ExplosionEvent>()
             .add_systems(OnEnter(GameState::InGame), (setup_player, setup_fonts))
             .add_systems(
                 Update,

@@ -9,9 +9,10 @@ use crate::{GameState, ImageAssets, MainCamera, SCREEN};
 
 use super::{
     components::{
-        AnimationIndices, AnimationStep, Cursor, Enemy, EnemySpawn, Engulfable, Explosion,
-        FlameRadius, Health, IdCounter, Missile, MissileArrivalEvent, MissileExplosionEvent,
-        Player, Score, Scoring, Stepper, TargetLock, Ufo,
+        AnimationIndices, AnimationStep, Cursor, Enemy, EnemySpawn, Engulfable, Explodable,
+        Explosion, ExplosionEvent, ExplosionMode, FlameRadius, Health, IdCounter, Missile,
+        MissileArrivalEvent, Player, Score, Scoring, Stepper, TargetLock, Ufo, MISSILE_SPEED,
+        PLAYER_MISSILE_SPEED, UFO_SPEED,
     },
     effects::{Flick, TimedRemoval},
 };
@@ -51,8 +52,9 @@ pub fn game_keys(
             Missile {
                 dest: transform.translation.truncate(),
                 lock_id: id,
-                vel: 250.0,
+                vel: PLAYER_MISSILE_SPEED,
             },
+            Explodable,
         ));
     }
 }
@@ -118,8 +120,9 @@ pub fn spawn_enemy_missile(
         Missile {
             dest: Vec2::new(dest_x, -SCREEN.y / 2.0),
             lock_id: id_counter.next(),
-            vel: 35.0,
+            vel: MISSILE_SPEED,
         },
+        Explodable,
         Engulfable,
         Enemy,
     ));
@@ -133,21 +136,21 @@ pub fn change_colors(mut query: Query<&mut Sprite, With<TargetLock>>) {
 
 pub fn explosion_system(
     mut commands: Commands,
-    mut explosion_event: EventReader<MissileExplosionEvent>,
+    mut explosion_event: EventReader<ExplosionEvent>,
     images: Res<ImageAssets>,
-    missiles: Query<(Entity, &Transform), With<Missile>>,
+    explodables: Query<(Entity, &Transform), With<Explodable>>,
 ) {
-    for MissileExplosionEvent { entity } in explosion_event.iter() {
-        for missile in missiles.iter() {
-            if missile.0 == *entity {
-                commands.entity(missile.0).despawn();
+    for ExplosionEvent { entity, mode } in explosion_event.iter() {
+        for (ex_entity, ex_transform) in explodables.iter() {
+            if ex_entity == *entity {
+                commands.entity(ex_entity).despawn();
 
                 commands.spawn((
                     SpriteSheetBundle {
                         texture_atlas: images.explosion.clone(),
                         sprite: TextureAtlasSprite::new(0),
                         transform: Transform {
-                            translation: missile.1.translation,
+                            translation: ex_transform.translation,
                             // scale: Vec3::splat(3.0),
                             ..default()
                         },
@@ -165,7 +168,7 @@ pub fn explosion_system(
                         steps: Vec::from([2, 8, 12, 16, 16, 16, 12, 12, 8, 2]),
                         timer: Timer::from_seconds(0.1, TimerMode::Repeating),
                     },
-                    Explosion::new(),
+                    Explosion::new(mode.clone()),
                 ));
             }
         }
@@ -179,7 +182,7 @@ pub fn missile_arrival_event_listner(
     mut player_health: Query<&mut Health, With<Player>>,
     target_locks: Query<(Entity, &TargetLock, &Transform), Without<Missile>>,
     mut next_state: ResMut<NextState<GameState>>,
-    mut explosion_event: EventWriter<MissileExplosionEvent>,
+    mut explosion_event: EventWriter<ExplosionEvent>,
 ) {
     for MissileArrivalEvent {
         entity: id,
@@ -196,7 +199,10 @@ pub fn missile_arrival_event_listner(
         }
 
         // Spawn explosion
-        explosion_event.send(MissileExplosionEvent { entity: *id });
+        explosion_event.send(ExplosionEvent {
+            entity: *id,
+            mode: ExplosionMode::Single,
+        });
 
         // Damage player
         if *is_enemy && missile.dest.y <= -(SCREEN.y / 2.0).ceil() {
@@ -213,11 +219,15 @@ pub fn missile_arrival_event_listner(
     }
 }
 
-pub fn move_ufo(mut commands: Commands, mut ufos: Query<(Entity, &Ufo, &mut Transform)>) {
+pub fn move_ufo(
+    mut commands: Commands,
+    mut ufos: Query<(Entity, &Ufo, &mut Transform)>,
+    time: Res<Time>,
+) {
     for (entity, ufo, mut transform) in ufos.iter_mut() {
         let dir = ufo.0 - transform.translation.truncate();
         let dist = dir.length();
-        let translation = dir.normalize() * 0.5;
+        let translation = dir.normalize() * UFO_SPEED * time.delta_seconds();
         if dist > translation.length() {
             // move the ufo
             transform.translation += translation.extend(0.0);
@@ -346,7 +356,7 @@ pub fn flame_engulf_system(
     )>,
     mut engulfables: Query<(Entity, &Transform, With<Engulfable>, Has<Missile>)>,
     mut score: ResMut<Score>,
-    mut explosion_event: EventWriter<MissileExplosionEvent>,
+    mut explosion_event: EventWriter<ExplosionEvent>,
 ) {
     for (flame_entity, flame_transform, mut stepper, mut expl, _) in flames.iter_mut() {
         stepper.timer.tick(time.delta());
@@ -362,7 +372,10 @@ pub fn flame_engulf_system(
                         let distance = flame_transform.translation.distance(transform.translation);
                         if distance <= *radius as f32 {
                             if is_missile {
-                                explosion_event.send(MissileExplosionEvent { entity });
+                                explosion_event.send(ExplosionEvent {
+                                    entity,
+                                    mode: ExplosionMode::Single,
+                                });
                                 expl.add_score(Scoring::Missile);
                             } else {
                                 // is ufo, more points

@@ -3,6 +3,10 @@ use std::time::Duration;
 use bevy::{prelude::*, utils::HashSet};
 use derive_more::From;
 
+pub const PLAYER_MISSILE_SPEED: f32 = 250.0;
+pub const MISSILE_SPEED: f32 = 35.0;
+pub const UFO_SPEED: f32 = 75.0;
+
 #[derive(From)]
 pub enum Scoring {
     Missile = 50,
@@ -89,14 +93,31 @@ pub struct Missile {
     pub vel: f32,
 }
 
+#[derive(Clone)]
+pub struct ChainedMeta {
+    pub timer: Timer,
+    pub remaining: usize,
+}
+
+#[derive(Clone)]
+pub enum ExplosionMode {
+    Single,
+    Chained(ChainedMeta),
+}
+
 #[derive(Component)]
 pub struct Explosion {
     pub score: usize,
     pub combo: usize,
+    pub mode: ExplosionMode,
 }
 impl Explosion {
-    pub fn new() -> Self {
-        Self { score: 0, combo: 0 }
+    pub fn new(mode: ExplosionMode) -> Self {
+        Self {
+            score: 0,
+            combo: 0,
+            mode,
+        }
     }
 
     pub fn add_score(&mut self, score: Scoring) {
@@ -126,6 +147,8 @@ impl IdCounter {
 
 #[derive(Component)]
 pub struct Engulfable;
+#[derive(Component)]
+pub struct Explodable;
 
 #[derive(Event)]
 pub struct MissileArrivalEvent {
@@ -135,6 +158,7 @@ pub struct MissileArrivalEvent {
 }
 
 #[derive(Event)]
-pub struct MissileExplosionEvent {
+pub struct ExplosionEvent {
     pub entity: Entity,
+    pub mode: ExplosionMode,
 }
