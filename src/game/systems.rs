@@ -1,18 +1,17 @@
-use bevy::{ecs::query::Has, prelude::*, transform};
+use bevy::{ecs::query::Has, prelude::*};
 use bevy_egui::{
-    egui::{self, Align2, RichText},
+    egui::{self, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, RichText},
     EguiContexts,
 };
 use bevy_turborand::{DelegatedRng, GlobalRng, RngComponent};
-use std::time::Duration;
 
 use crate::{game::components::StepCursor, GameState, ImageAssets, MainCamera, SCREEN};
 
 use super::{
     components::{
-        AnimationIndices, AnimationStepper, Cursor, CursorTimer, Enemy, EnemySpawn, Engulfable,
-        Explosion, FlameEngulfRadiusStepper, FlameEngulfStepTimer, Health, HealthBar, IdCounter,
-        Missile, MissileArrivalEvent, Player, Score, Scoring, TargetLock,
+        AnimationIndices, Cursor, CursorTimer, Enemy, EnemySpawn, Engulfable, Explosion,
+        FlameEngulfRadiusStepper, FlameEngulfStepTimer, Health, IdCounter, Missile,
+        MissileArrivalEvent, Player, Score, Scoring, TargetLock,
     },
     effects::{Flick, TimedRemoval},
 };
@@ -93,7 +92,7 @@ pub fn spawn_enemy_missile(
         Missile {
             dest: Vec2::new(dest_x, -SCREEN.y / 2.0),
             lock_id: id_counter.next(),
-            vel: 50.0,
+            vel: 35.0,
         },
         Engulfable,
         Enemy,
@@ -106,7 +105,33 @@ pub fn change_colors(mut query: Query<&mut Sprite, With<TargetLock>>) {
     }
 }
 
-pub fn setup_cursor(mut commands: Commands, images: Res<ImageAssets>) {
+pub fn setup_fonts(mut contexts: EguiContexts) {
+    let mut fonts = FontDefinitions::default();
+
+    // Install my own font (maybe supporting non-latin characters):
+    fonts.font_data.insert(
+        "visitor".to_owned(),
+        FontData::from_static(include_bytes!("../../assets/fonts/visitor.ttf")),
+    ); // .ttf and .otf supported
+
+    // Put my font first (highest priority):
+    fonts
+        .families
+        .get_mut(&FontFamily::Proportional)
+        .unwrap()
+        .insert(0, "visitor".to_owned());
+
+    // Put my font as last fallback for monospace:
+    fonts
+        .families
+        .get_mut(&FontFamily::Monospace)
+        .unwrap()
+        .push("visitor".to_owned());
+
+    contexts.ctx_mut().set_fonts(fonts);
+}
+
+pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
     commands.spawn((
         SpriteSheetBundle {
             texture_atlas: images.cursor.clone(),
@@ -117,7 +142,6 @@ pub fn setup_cursor(mut commands: Commands, images: Res<ImageAssets>) {
         Cursor {},
     ));
 
-    // player
     commands.spawn((
         SpriteSheetBundle {
             texture_atlas: images.cannon.clone(),
@@ -130,18 +154,21 @@ pub fn setup_cursor(mut commands: Commands, images: Res<ImageAssets>) {
     ));
 }
 
-pub fn score_ui(mut commands: Commands, mut contexts: EguiContexts, score: Res<Score>) {
+pub fn score_ui(mut contexts: EguiContexts, score: Res<Score>) {
     egui::Area::new("Score")
         .anchor(Align2::LEFT_TOP, egui::emath::vec2(10., 5.))
         .show(contexts.ctx_mut(), |ui| {
             ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
-                ui.label(format!("{:0>7}", score.0));
+                ui.label(
+                    RichText::new(format!("{:0>7}", score.0))
+                        .font(FontId::proportional(20.))
+                        .color(Color32::WHITE),
+                );
             });
         });
 }
 
 pub fn health_ui(
-    mut commands: Commands,
     images: Res<ImageAssets>,
     player: Query<(&Health, With<Player>)>,
     mut contexts: EguiContexts,
@@ -164,7 +191,7 @@ pub fn health_ui(
         });
 }
 
-pub fn game_over_ui(mut commands: Commands, mut contexts: EguiContexts) {
+pub fn game_over_ui(mut contexts: EguiContexts) {
     egui::Area::new("gameover")
         .anchor(Align2::CENTER_CENTER, egui::emath::vec2(0., 0.))
         .show(contexts.ctx_mut(), |ui| ui.label("Game Over!"));

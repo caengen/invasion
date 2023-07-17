@@ -99,11 +99,11 @@ fn main() {
     // .add_plugins(
     //     WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)),
     // )
-    .add_plugins(RngPlugin::new().with_rng_seed(220718))
+    .add_plugins(RngPlugin::new() /* .with_rng_seed(220718) */)
     .add_plugins(EguiPlugin)
     .add_plugins(MainMenuPlugin)
     .add_plugins(GamePlugin)
-    .add_systems(Startup, setup);
+    .add_systems(Startup, spawn_camera);
 
     app.run();
 }
@@ -111,7 +111,7 @@ fn main() {
 #[derive(Component)]
 pub struct MainCamera;
 
-fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
+fn spawn_camera(mut commands: Commands, mut windows: Query<&mut Window>) {
     commands.spawn((
         Camera2dBundle {
             camera_2d: Camera2d {

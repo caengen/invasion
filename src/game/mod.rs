@@ -6,12 +6,12 @@ use self::{
     systems::{
         animate_sprite_indices, animate_sprite_steps, change_colors, flame_engulf_system,
         game_keys, game_over_ui, health_ui, missile_arrival_event_listner, move_cursor,
-        move_missile, reset_game_listener, rotate_player, score_ui, setup_cursor,
+        move_missile, reset_game_listener, rotate_player, score_ui, setup_fonts, setup_player,
         spawn_enemy_missile, teardown,
     },
 };
 use crate::GameState;
-use bevy::{prelude::*, utils::HashSet};
+use bevy::prelude::*;
 
 mod collision;
 mod components;
@@ -22,7 +22,7 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<MissileArrivalEvent>()
-            .add_systems(OnEnter(GameState::InGame), setup_cursor)
+            .add_systems(OnEnter(GameState::InGame), (setup_player, setup_fonts))
             .add_systems(
                 Update,
                 (
@@ -38,11 +38,14 @@ impl Plugin for GamePlugin {
                         game_keys,
                         flick_system,
                         change_colors,
-                        timed_removal_system,
-                        move_missile,
-                        missile_arrival_event_listner,
-                        flame_engulf_system.after(move_missile),
-                        spawn_enemy_missile,
+                        (
+                            spawn_enemy_missile,
+                            move_missile,
+                            timed_removal_system,
+                            missile_arrival_event_listner,
+                            flame_engulf_system,
+                        )
+                            .chain(),
                         health_ui,
                         rotate_player,
                     )
