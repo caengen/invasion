@@ -57,6 +57,8 @@ pub struct AnimationIndices {
     pub timer: Timer,
 }
 #[derive(Component)]
+pub struct AnimeRemoveOnFinish;
+#[derive(Component)]
 pub struct Stepper<T, U> {
     pub marker: T,
     pub current: usize,

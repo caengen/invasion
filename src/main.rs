@@ -36,7 +36,7 @@ pub struct ImageAssets {
     pub heart_full: Handle<Image>,
     #[asset(path = "textures/heart-empty.png")]
     pub heart_empty: Handle<Image>,
-    #[asset(texture_atlas(tile_size_x = 32.0, tile_size_y = 32.0, columns = 1, rows = 1))]
+    #[asset(texture_atlas(tile_size_x = 32.0, tile_size_y = 32.0, columns = 4, rows = 1))]
     #[asset(path = "textures/cannon.png")]
     pub cannon: Handle<TextureAtlas>,
 }

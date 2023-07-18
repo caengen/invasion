@@ -11,10 +11,11 @@ use crate::{GameState, ImageAssets, MainCamera, SCREEN};
 
 use super::{
     components::{
-        AnimationIndices, AnimationStep, ChainedMeta, Cursor, Enemy, EnemySpawn, Engulfable,
-        Explodable, Explosion, ExplosionEvent, ExplosionMode, FlameRadius, Health, IdCounter,
-        Missile, MissileArrivalEvent, Player, Score, Scoring, SpawnPoint, Stepper, TargetLock, Ufo,
-        MISSILE_SPAWN_MAX, MISSILE_SPAWN_MIN, MISSILE_SPEED, PLAYER_MISSILE_SPEED, UFO_SPEED,
+        AnimationIndices, AnimationStep, AnimeRemoveOnFinish, ChainedMeta, Cursor, Enemy,
+        EnemySpawn, Engulfable, Explodable, Explosion, ExplosionEvent, ExplosionMode, FlameRadius,
+        Health, IdCounter, Missile, MissileArrivalEvent, Player, Score, Scoring, SpawnPoint,
+        Stepper, TargetLock, Ufo, MISSILE_SPAWN_MAX, MISSILE_SPAWN_MIN, MISSILE_SPEED,
+        PLAYER_MISSILE_SPEED, UFO_SPEED,
     },
     effects::{Flick, TimedRemoval},
 };
@@ -25,8 +26,19 @@ pub fn game_keys(
     mut id_counter: ResMut<IdCounter>,
     mut commands: Commands,
     images: Res<ImageAssets>,
+    player: Query<(Entity, With<Player>)>,
 ) {
     if buttons.just_pressed(MouseButton::Left) {
+        let player_entity = player.single().0;
+        commands.entity(player_entity).insert((
+            AnimationIndices {
+                first: 0,
+                last: 3,
+                timer: Timer::from_seconds(0.1, TimerMode::Repeating),
+            },
+            AnimeRemoveOnFinish,
+        ));
+
         let transform = cursor_pos.single();
         let id = id_counter.next();
         commands.spawn((
@@ -194,16 +206,25 @@ pub fn reset_game_listener(
 }
 
 pub fn animate_sprite_indices(
+    mut commands: Commands,
     time: Res<Time>,
-    mut query: Query<(&mut AnimationIndices, &mut TextureAtlasSprite)>,
+    mut query: Query<(
+        Entity,
+        &mut AnimationIndices,
+        &mut TextureAtlasSprite,
+        Has<AnimeRemoveOnFinish>,
+    )>,
 ) {
-    for (mut indices, mut sprite) in &mut query {
+    for (entity, mut indices, mut sprite, has_boe) in &mut query {
         indices.timer.tick(time.delta());
         if indices.timer.just_finished() {
-            sprite.index = if sprite.index == indices.last {
-                indices.first
+            if sprite.index == indices.last {
+                sprite.index = indices.first;
+                if has_boe {
+                    commands.entity(entity).remove::<AnimationIndices>();
+                }
             } else {
-                sprite.index + 1
+                sprite.index = sprite.index + 1;
             };
         }
     }
@@ -419,6 +440,8 @@ pub fn teardown(
     cursor: Query<Entity, With<Cursor>>,
     enemies: Query<Entity, With<Enemy>>,
 ) {
+    // maybe just add some teardown components...
+    // TeardownLevel, TeardownLoss... 🤔
     for missile in missiles.iter() {
         commands.entity(missile).despawn_recursive();
     }
