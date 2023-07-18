@@ -15,7 +15,7 @@ lto = "thin"
 
 [dependencies]
 bevy = "0.11"
-bevy_prototype_lyon = "0.6.0"
+bevy_prototype_lyon = "0.9.0"
 getrandom = { version = "0.2.7", features = ["js"] }
 bevy_turborand = "0.6"
 derive_more = "0.99.17"

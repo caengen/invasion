@@ -406,12 +406,16 @@ pub fn teardown(
     mut commands: Commands,
     missiles: Query<Entity, (With<Missile>, Without<Player>)>,
     player: Query<Entity, With<Player>>,
+    cursor: Query<Entity, With<Cursor>>,
 ) {
     for missile in missiles.iter() {
         commands.entity(missile).despawn_recursive();
     }
     for player in player.iter() {
         commands.entity(player).despawn_recursive();
+    }
+    for cursor in cursor.iter() {
+        commands.entity(cursor).despawn_recursive();
     }
 }
 
@@ -515,9 +519,13 @@ pub fn game_over_ui(mut contexts: EguiContexts) {
 
 mod spawner {
     use bevy::{
-        math::vec2,
+        math::{vec2, vec3},
         prelude::*,
         sprite::{SpriteSheetBundle, TextureAtlasSprite},
+    };
+    use bevy_prototype_lyon::{
+        prelude::{Fill, GeometryBuilder, ShapeBundle, Stroke},
+        shapes,
     };
     use bevy_turborand::{DelegatedRng, RngComponent};
 
@@ -567,21 +575,43 @@ mod spawner {
         if dest_x < -SCREEN.x || dest_x > SCREEN.x {
             dest_x *= -1.0;
         }
+        let parent = commands
+            .spawn((
+                SpriteSheetBundle {
+                    texture_atlas: images,
+                    sprite: TextureAtlasSprite::new(3),
+                    transform: Transform::from_translation(Vec3::new(
+                        origin_x,
+                        SCREEN.y / 2.0,
+                        1.0,
+                    )),
+                    ..default()
+                },
+                Missile {
+                    dest: Vec2::new(dest_x, -SCREEN.y / 2.0),
+                    lock_id: id_counter.next(),
+                    vel: MISSILE_SPEED,
+                },
+                Explodable,
+                Engulfable,
+                Enemy,
+            ))
+            .id();
+
+        let shape = shapes::Line(
+            vec2(origin_x, SCREEN.y / 2.0),
+            vec2(dest_x, -SCREEN.y / 2.0),
+        );
         commands.spawn((
-            SpriteSheetBundle {
-                texture_atlas: images,
-                sprite: TextureAtlasSprite::new(3),
-                transform: Transform::from_translation(Vec3::new(origin_x, SCREEN.y / 2.0, 1.0)),
+            ShapeBundle {
+                path: GeometryBuilder::build_as(&shape),
+                transform: Transform {
+                    translation: vec3(0.0, 0.0, 1.0),
+                    ..Default::default()
+                },
                 ..default()
             },
-            Missile {
-                dest: Vec2::new(dest_x, -SCREEN.y / 2.0),
-                lock_id: id_counter.next(),
-                vel: MISSILE_SPEED,
-            },
-            Explodable,
-            Engulfable,
-            Enemy,
+            Fill::color(Color::RED),
         ));
     }
 }
