@@ -36,6 +36,8 @@ pub struct Health {
     pub current: u8,
     pub max: u8,
 }
+#[derive(Component)]
+pub struct SpawnPoint(pub Vec2);
 #[derive(Debug, Component, From)]
 pub struct Vel(pub Vec2);
 

@@ -6,9 +6,9 @@ use self::{
     systems::{
         animate_sprite_indices, animate_sprite_steps, change_colors,
         explosion_event_listener_system, explosion_system, flame_engulf_system, game_keys,
-        game_over_ui, health_ui, missile_arrival_event_listner, move_cursor, move_missile,
-        move_ufo, reset_game_listener, rotate_player, score_ui, setup_fonts, setup_player,
-        spawn_enemies, teardown,
+        game_over_ui, gizmo_missile_trails, health_ui, missile_arrival_event_listner, move_cursor,
+        move_missile, move_ufo, reset_game_listener, rotate_player, score_ui, setup_fonts,
+        setup_player, spawn_enemies, teardown,
     },
 };
 use crate::GameState;
@@ -43,6 +43,7 @@ impl Plugin for GamePlugin {
                         (
                             spawn_enemies,
                             move_missile,
+                            gizmo_missile_trails,
                             move_ufo,
                             timed_removal_system,
                             missile_arrival_event_listner,

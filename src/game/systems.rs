@@ -13,7 +13,7 @@ use super::{
     components::{
         AnimationIndices, AnimationStep, ChainedMeta, Cursor, Enemy, EnemySpawn, Engulfable,
         Explodable, Explosion, ExplosionEvent, ExplosionMode, FlameRadius, Health, IdCounter,
-        Missile, MissileArrivalEvent, Player, Score, Scoring, Stepper, TargetLock, Ufo,
+        Missile, MissileArrivalEvent, Player, Score, Scoring, SpawnPoint, Stepper, TargetLock, Ufo,
         MISSILE_SPAWN_MAX, MISSILE_SPAWN_MIN, MISSILE_SPEED, PLAYER_MISSILE_SPEED, UFO_SPEED,
     },
     effects::{Flick, TimedRemoval},
@@ -58,6 +58,16 @@ pub fn game_keys(
             },
             Explodable,
         ));
+    }
+}
+
+// temp gizmo
+pub fn gizmo_missile_trails(
+    mut gizmos: Gizmos,
+    missiles: Query<(&Transform, &SpawnPoint), (With<Missile>, With<Enemy>)>,
+) {
+    for (transform, spawn_point) in missiles.iter() {
+        gizmos.line_2d(spawn_point.0, transform.translation.truncate(), Color::RED);
     }
 }
 
@@ -531,7 +541,8 @@ mod spawner {
 
     use crate::{
         game::components::{
-            AnimationIndices, Enemy, Engulfable, Explodable, IdCounter, Missile, Ufo, MISSILE_SPEED,
+            AnimationIndices, Enemy, Engulfable, Explodable, IdCounter, Missile, SpawnPoint, Ufo,
+            MISSILE_SPEED,
         },
         SCREEN,
     };
@@ -594,6 +605,7 @@ mod spawner {
                 },
                 Explodable,
                 Engulfable,
+                SpawnPoint(vec2(origin_x, SCREEN.y / 2.0)),
                 Enemy,
             ))
             .id();
