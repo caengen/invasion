@@ -417,6 +417,7 @@ pub fn teardown(
     missiles: Query<Entity, (With<Missile>, Without<Player>)>,
     player: Query<Entity, With<Player>>,
     cursor: Query<Entity, With<Cursor>>,
+    enemies: Query<Entity, With<Enemy>>,
 ) {
     for missile in missiles.iter() {
         commands.entity(missile).despawn_recursive();
@@ -426,6 +427,9 @@ pub fn teardown(
     }
     for cursor in cursor.iter() {
         commands.entity(cursor).despawn_recursive();
+    }
+    for enemy in enemies.iter() {
+        commands.entity(enemy).despawn_recursive();
     }
 }
 
