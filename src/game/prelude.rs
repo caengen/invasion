@@ -14,10 +14,13 @@ pub struct Stage {
     pub enemies_count: usize,
     pub missile_spawn_min: usize,
     pub missile_spawn_max: usize,
+    pub missile_speed: f32,
     pub ufo_speed: f32,
-    pub bg_cor: Vec<usize>,
-    pub fg_cor: Vec<usize>,
-    pub trail_cor: Vec<usize>,
+    pub ufo_chance: f64,
+    pub text_cor: Vec<u8>,
+    pub bg_cor: Vec<u8>,
+    pub fg_cor: Vec<u8>,
+    pub trail_cor: Vec<u8>,
 }
 
 #[derive(Resource)]

@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-use bevy::{ecs::query::Has, math::vec2, prelude::*};
+use bevy::{core_pipeline::clear_color::ClearColorConfig, ecs::query::Has, math::vec2, prelude::*};
 use bevy_egui::{
     egui::{self, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, RichText},
     EguiContexts,
@@ -13,11 +13,11 @@ use super::{
     components::{
         AnimationIndices, AnimationStep, AnimeRemoveOnFinish, ChainedMeta, Cursor, Enemy,
         EnemySpawn, Engulfable, Explodable, Explosion, ExplosionEvent, ExplosionMode, FlameRadius,
-        Health, IdCounter, Missile, MissileArrivalEvent, Player, Score, Scoring, SpawnPoint,
-        Stepper, TargetLock, Ufo, MISSILE_SPAWN_MAX, MISSILE_SPAWN_MIN, MISSILE_SPEED,
-        PLAYER_MISSILE_SPEED, UFO_SPEED,
+        Foreground, Health, IdCounter, Missile, MissileArrivalEvent, Player, Score, Scoring,
+        SpawnPoint, Stepper, TargetLock, Ufo, PLAYER_MISSILE_SPEED,
     },
     effects::{Flick, TimedRemoval},
+    prelude::{Stage, StageHandle},
 };
 
 pub fn game_keys(
@@ -77,9 +77,17 @@ pub fn game_keys(
 pub fn gizmo_missile_trails(
     mut gizmos: Gizmos,
     missiles: Query<(&Transform, &SpawnPoint), (With<Missile>, With<Enemy>)>,
+    stage: Res<StageHandle>,
+    stages: Res<Assets<Stage>>,
 ) {
+    let stage = stages.get(&stage.0).unwrap();
+
     for (transform, spawn_point) in missiles.iter() {
-        gizmos.line_2d(spawn_point.0, transform.translation.truncate(), Color::RED);
+        gizmos.line_2d(
+            spawn_point.0,
+            transform.translation.truncate(),
+            color_from_vec(&stage.trail_cor),
+        );
     }
 }
 
@@ -90,6 +98,8 @@ pub fn spawn_enemies(
     mut global_rng: ResMut<GlobalRng>,
     mut enemy_spawn: ResMut<EnemySpawn>,
     time: Res<Time>,
+    stage: Res<StageHandle>,
+    stages: Res<Assets<Stage>>,
 ) {
     enemy_spawn.0.tick(time.delta());
 
@@ -98,19 +108,22 @@ pub fn spawn_enemies(
     }
 
     enemy_spawn.0.reset();
+
     let mut rng = RngComponent::from(&mut global_rng);
+    let stage = stages.get(&stage.0).unwrap();
 
     // spawn ufo
-    if rng.chance(0.2) {
+    if rng.chance(stage.ufo_chance) {
         spawner::ufo(&mut commands, &mut rng, images.cursor.clone());
     }
 
-    for _ in 0..rng.usize(MISSILE_SPAWN_MIN..MISSILE_SPAWN_MAX) {
+    for _ in 0..rng.usize(stage.missile_spawn_min..stage.missile_spawn_max) {
         spawner::missile(
             &mut commands,
             &mut rng,
             &mut id_counter,
             images.cursor.clone(),
+            &stage,
         );
     }
 }
@@ -125,11 +138,14 @@ pub fn move_ufo(
     mut commands: Commands,
     mut ufos: Query<(Entity, &Ufo, &mut Transform)>,
     time: Res<Time>,
+    stage: Res<StageHandle>,
+    stages: Res<Assets<Stage>>,
 ) {
+    let stage = stages.get(&stage.0).unwrap();
     for (entity, ufo, mut transform) in ufos.iter_mut() {
         let dir = ufo.0 - transform.translation.truncate();
         let dist = dir.length();
-        let translation = dir.normalize() * UFO_SPEED * time.delta_seconds();
+        let translation = dir.normalize() * stage.ufo_speed * time.delta_seconds();
         if dist > translation.length() {
             // move the ufo
             transform.translation += translation.extend(0.0);
@@ -329,6 +345,7 @@ pub fn explosion_event_listener_system(
                 timer: Timer::from_seconds(0.1, TimerMode::Repeating),
             },
             Explosion::new(explosion_mode),
+            Foreground,
         ));
     }
 }
@@ -468,7 +485,8 @@ pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
             ..default()
         },
-        Cursor {},
+        Cursor,
+        Foreground,
     ));
 
     commands.spawn((
@@ -478,9 +496,26 @@ pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
             transform: Transform::from_translation(Vec3::new(0.0, -SCREEN.y / 2.0, 1.0)),
             ..default()
         },
-        Player {},
+        Player,
         Health { max: 3, current: 3 },
+        Foreground,
     ));
+}
+
+pub fn stage_colors(
+    mut foregrounds: Query<(&mut Sprite), (With<Foreground>)>,
+    mut cameras: Query<(&mut Camera2d)>,
+    stage: Res<StageHandle>,
+    stages: Res<Assets<Stage>>,
+) {
+    let stage = stages.get(&stage.0).unwrap();
+    for mut sprite in foregrounds.iter_mut() {
+        // why is this NOT WORKING?!
+        sprite.color = Color::from(color_from_vec(&stage.fg_cor));
+    }
+    for mut camera in cameras.iter_mut() {
+        camera.clear_color = ClearColorConfig::Custom(Color::from(color_from_vec(&stage.bg_cor)));
+    }
 }
 
 /* UI
@@ -535,6 +570,13 @@ pub fn game_over_ui(mut contexts: EguiContexts) {
         });
 }
 
+pub fn color_from_vec(color: &[u8]) -> Color {
+    match color {
+        [r, g, b] => Color::rgb(*r as f32 / 255.0, *g as f32 / 255.0, *b as f32 / 255.0),
+        _ => Color::rgb(1.0, 1.0, 1.0),
+    }
+}
+
 mod spawner {
     use bevy::{
         math::{vec2, vec3},
@@ -548,12 +590,17 @@ mod spawner {
     use bevy_turborand::{DelegatedRng, RngComponent};
 
     use crate::{
-        game::components::{
-            AnimationIndices, Enemy, Engulfable, Explodable, IdCounter, Missile, SpawnPoint, Ufo,
-            MISSILE_SPEED,
+        game::{
+            components::{
+                AnimationIndices, Enemy, Engulfable, Explodable, Foreground, IdCounter, Missile,
+                SpawnPoint, Ufo, MISSILE_SPEED,
+            },
+            prelude::Stage,
         },
         SCREEN,
     };
+
+    use super::color_from_vec;
 
     pub fn ufo(commands: &mut Commands, rng: &mut RngComponent, images: Handle<TextureAtlas>) {
         let origin_y = rng.i32((-(SCREEN.y / 3.0) as i32)..((SCREEN.y / 2.0) as i32 - 30)) as f32;
@@ -576,6 +623,7 @@ mod spawner {
             Explodable,
             Engulfable,
             Enemy,
+            Foreground,
         ));
     }
 
@@ -584,6 +632,7 @@ mod spawner {
         rng: &mut RngComponent,
         id_counter: &mut ResMut<IdCounter>,
         images: Handle<TextureAtlas>,
+        stage: &Stage,
     ) {
         // lag random position fra topp med random dest
         // fn ticker hvert sekund. Opprett en strek
@@ -609,12 +658,13 @@ mod spawner {
                 Missile {
                     dest: Vec2::new(dest_x, -SCREEN.y / 2.0),
                     lock_id: id_counter.next(),
-                    vel: MISSILE_SPEED,
+                    vel: stage.missile_speed,
                 },
                 Explodable,
                 Engulfable,
                 SpawnPoint(vec2(origin_x, SCREEN.y / 2.0)),
                 Enemy,
+                Foreground,
             ))
             .id();
 
@@ -631,7 +681,7 @@ mod spawner {
                 },
                 ..default()
             },
-            Fill::color(Color::RED),
+            Fill::color(color_from_vec(&stage.trail_cor)),
         ));
     }
 }

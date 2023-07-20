@@ -4,12 +4,12 @@ use crate::{
 };
 use bevy::prelude::*;
 use bevy_egui::{
-    egui::{self, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, RichText},
+    egui::{self, Align2, Color32, FontId, RichText},
     EguiContexts,
 };
 
 pub fn setup_stage(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let stage = StageHandle(asset_server.load("stages/a.stage.json"));
+    let stage = StageHandle(asset_server.load("stages/1.stage.json"));
     commands.insert_resource(stage);
 }
 
@@ -20,8 +20,21 @@ pub fn show_stage_intro(
 ) {
     if let Some(stage) = stages.get(&stage.0) {
         egui::Area::new("title")
-            .anchor(Align2::CENTER_TOP, egui::emath::vec2(30., 0.))
-            .show(contexts.ctx_mut(), |ui| ui.label(stage.name.clone()));
+            .anchor(Align2::CENTER_CENTER, egui::emath::vec2(0., -50.))
+            .show(contexts.ctx_mut(), |ui| {
+                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                    ui.label(
+                        RichText::new(stage.name.clone())
+                            .font(FontId::proportional(24.))
+                            .color(Color32::WHITE),
+                    );
+                    ui.label(
+                        RichText::new(stage.bread.clone())
+                            .font(FontId::proportional(18.))
+                            .color(Color32::WHITE),
+                    );
+                })
+            });
     }
 }
 

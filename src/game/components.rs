@@ -168,3 +168,8 @@ pub struct ExplosionEvent {
     pub pos: Vec3,
     pub mode: ExplosionMode,
 }
+
+#[derive(Component)]
+pub struct Foreground;
+#[derive(Component)]
+pub struct TextColor;
