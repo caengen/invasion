@@ -1,0 +1,24 @@
+{
+  "name": "Stage 2",
+  "bread": "Oslo",
+  "spawn_rate": 1.0,
+  "enemies_count": 50,
+  "missile_spawn_min": 3,
+  "missile_spawn_max": 6,
+  "ufo_speed": 25.0,
+  "bg_cor": [
+    0,
+    128,
+    0
+  ],
+  "fg_cor": [
+    0,
+    0,
+    255
+  ],
+  "trail_cor": [
+    255,
+    0,
+    0
+  ]
+}

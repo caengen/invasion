@@ -459,31 +459,6 @@ pub fn teardown(
 /* Setup
  * Systems that are called once at the start of the game
  */
-pub fn setup_fonts(mut contexts: EguiContexts) {
-    let mut fonts = FontDefinitions::default();
-
-    // Install my own font (maybe supporting non-latin characters):
-    fonts.font_data.insert(
-        "visitor".to_owned(),
-        FontData::from_static(include_bytes!("../../assets/fonts/visitor.ttf")),
-    ); // .ttf and .otf supported
-
-    // Put my font first (highest priority):
-    fonts
-        .families
-        .get_mut(&FontFamily::Proportional)
-        .unwrap()
-        .insert(0, "visitor".to_owned());
-
-    // Put my font as last fallback for monospace:
-    fonts
-        .families
-        .get_mut(&FontFamily::Monospace)
-        .unwrap()
-        .push("visitor".to_owned());
-
-    contexts.ctx_mut().set_fonts(fonts);
-}
 
 pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
     commands.spawn((
@@ -551,7 +526,13 @@ pub fn health_ui(
 pub fn game_over_ui(mut contexts: EguiContexts) {
     egui::Area::new("gameover")
         .anchor(Align2::CENTER_CENTER, egui::emath::vec2(0., 0.))
-        .show(contexts.ctx_mut(), |ui| ui.label("Game Over!"));
+        .show(contexts.ctx_mut(), |ui| {
+            ui.label(
+                RichText::new("GAME OVER")
+                    .font(FontId::proportional(24.))
+                    .color(Color32::WHITE),
+            )
+        });
 }
 
 mod spawner {

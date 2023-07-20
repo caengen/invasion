@@ -23,3 +23,5 @@ bevy-inspector-egui = "0.18.0"
 bevy_ecs_tilemap = "0.10"
 bevy_asset_loader = { git = "https://github.com/NiklasEi/bevy_asset_loader.git", rev = "6f804d6016223eed549f6c9264d8c22830a84af1", features = ["2d"] }
 bevy_egui = "0.21.0"
+bevy_common_assets = { version = "0.7.0", features = ["json"] }
+serde = "1.0.173"

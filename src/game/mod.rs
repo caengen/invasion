@@ -7,8 +7,8 @@ use self::{
         animate_sprite_indices, animate_sprite_steps, change_colors,
         explosion_event_listener_system, explosion_system, flame_engulf_system, game_keys,
         game_over_ui, gizmo_missile_trails, health_ui, missile_arrival_event_listner, move_cursor,
-        move_missile, move_ufo, reset_game_listener, rotate_player, score_ui, setup_fonts,
-        setup_player, spawn_enemies, teardown,
+        move_missile, move_ufo, reset_game_listener, rotate_player, score_ui, setup_player,
+        spawn_enemies, teardown,
     },
 };
 use crate::GameState;
@@ -17,6 +17,7 @@ use bevy::prelude::*;
 mod collision;
 mod components;
 mod effects;
+pub mod prelude;
 mod systems;
 
 pub struct GamePlugin;
@@ -24,7 +25,7 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<MissileArrivalEvent>()
             .add_event::<ExplosionEvent>()
-            .add_systems(OnEnter(GameState::InGame), (setup_player, setup_fonts))
+            .add_systems(OnEnter(GameState::InGame), setup_player)
             .add_systems(
                 Update,
                 (
@@ -34,7 +35,8 @@ impl Plugin for GamePlugin {
                         animate_sprite_steps,
                         animate_sprite_indices,
                         score_ui,
-                    ),
+                    )
+                        .run_if(in_state(GameState::InGame).or_else(in_state(GameState::GameOver))),
                     // run these systems if we are in the InGame state
                     (
                         game_keys,

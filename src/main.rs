@@ -8,15 +8,21 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
-use bevy_egui::EguiPlugin;
+use bevy_common_assets::json::JsonAssetPlugin;
+use bevy_egui::{
+    egui::{FontData, FontDefinitions, FontFamily},
+    EguiContexts, EguiPlugin,
+};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_turborand::prelude::RngPlugin;
 use config::Debug;
-use game::GamePlugin;
+use enter_stage::EnterStagePlugin;
+use game::{prelude::*, GamePlugin};
 use main_menu::*;
 use std::{env, process, time::Duration};
 
 mod config;
+mod enter_stage;
 mod game;
 mod main_menu;
 
@@ -43,11 +49,13 @@ pub struct ImageAssets {
 
 #[derive(States, Hash, Clone, PartialEq, Eq, Debug, Default)]
 pub enum GameState {
-    MainMenu,
-    InGame,
-    GameOver,
     #[default]
     AssetLoading,
+    MainMenu,
+    EnterStage,
+    InGame,
+    GameOver,
+    LeaveStage,
 }
 
 /**
@@ -91,7 +99,7 @@ fn main() {
     )
     .add_state::<GameState>()
     .add_loading_state(
-        LoadingState::new(GameState::AssetLoading).continue_to_state(GameState::InGame),
+        LoadingState::new(GameState::AssetLoading).continue_to_state(GameState::MainMenu),
     )
     .insert_resource(Debug(cfg.debug))
     .add_collection_to_loading_state::<_, ImageAssets>(GameState::AssetLoading)
@@ -99,11 +107,15 @@ fn main() {
     // .add_plugins(
     //     WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)),
     // )
-    .add_plugins(RngPlugin::new() /* .with_rng_seed(220718) */)
-    .add_plugins(EguiPlugin)
-    .add_plugins(MainMenuPlugin)
-    .add_plugins(GamePlugin)
-    .add_systems(Startup, spawn_camera);
+    .add_plugins((
+        RngPlugin::new(), /* .with_rng_seed(220718) */
+        JsonAssetPlugin::<Stage>::new(&["stage.json"]),
+        EguiPlugin,
+        MainMenuPlugin,
+        EnterStagePlugin,
+        GamePlugin,
+    ))
+    .add_systems(Startup, (setup_fonts, spawn_camera));
 
     app.run();
 }
@@ -125,4 +137,30 @@ fn spawn_camera(mut commands: Commands, mut windows: Query<&mut Window>) {
     for mut window in windows.iter_mut() {
         window.cursor.visible = false;
     }
+}
+
+fn setup_fonts(mut contexts: EguiContexts) {
+    let mut fonts = FontDefinitions::default();
+
+    // Install my own font (maybe supporting non-latin characters):
+    fonts.font_data.insert(
+        "visitor".to_owned(),
+        FontData::from_static(include_bytes!("../assets/fonts/visitor.ttf")),
+    ); // .ttf and .otf supported
+
+    // Put my font first (highest priority):
+    fonts
+        .families
+        .get_mut(&FontFamily::Proportional)
+        .unwrap()
+        .insert(0, "visitor".to_owned());
+
+    // Put my font as last fallback for monospace:
+    fonts
+        .families
+        .get_mut(&FontFamily::Monospace)
+        .unwrap()
+        .push("visitor".to_owned());
+
+    contexts.ctx_mut().set_fonts(fonts);
 }

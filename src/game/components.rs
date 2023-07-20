@@ -3,8 +3,6 @@ use std::time::Duration;
 use bevy::{prelude::*, utils::HashSet};
 use derive_more::From;
 
-// Level data.
-// todo read from json
 pub const PLAYER_MISSILE_SPEED: f32 = 250.0;
 pub const MISSILE_SPEED: f32 = 35.0;
 pub const UFO_SPEED: f32 = 75.0;

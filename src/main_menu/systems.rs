@@ -6,10 +6,11 @@ use super::components::MainMenuText;
 
 pub fn transition_to_game(
     mut next_state: ResMut<NextState<GameState>>,
-    keyboard: Res<Input<KeyCode>>,
+    mut keyboard: ResMut<Input<KeyCode>>,
 ) {
-    if keyboard.pressed(KeyCode::Space) {
-        next_state.set(GameState::InGame);
+    if keyboard.just_released(KeyCode::Space) {
+        keyboard.clear_just_released(KeyCode::Space);
+        next_state.set(GameState::EnterStage);
     }
 }
 
