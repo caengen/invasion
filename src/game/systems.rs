@@ -572,12 +572,12 @@ pub fn stage_colors(
  */
 pub fn score_ui(mut contexts: EguiContexts, score: Res<Score>) {
     egui::Area::new("Score")
-        .anchor(Align2::LEFT_TOP, egui::emath::vec2(10., 5.))
+        .anchor(Align2::CENTER_TOP, egui::emath::vec2(10., 5.))
         .show(contexts.ctx_mut(), |ui| {
             ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
                 ui.label(
                     RichText::new(format!("{:0>7}", score.0))
-                        .font(FontId::proportional(20.))
+                        .font(FontId::proportional(24.))
                         .color(Color32::WHITE),
                 );
             });
