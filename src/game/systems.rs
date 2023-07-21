@@ -17,7 +17,7 @@ use super::{
         Player, Score, Scoring, SpawnPoint, Stepper, TargetLock, Ufo, PLAYER_MISSILE_SPEED,
     },
     effects::{Flick, TimedRemoval},
-    prelude::{Stage, StageHandle},
+    prelude::{color_from_vec, Stage, StageHandle},
 };
 
 pub fn game_keys(
@@ -513,6 +513,16 @@ pub fn teardown(
 pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
     commands.spawn((
         SpriteSheetBundle {
+            texture_atlas: images.ground.clone(),
+            sprite: TextureAtlasSprite::new(0),
+            transform: Transform::from_translation(Vec3::new(0.0, -SCREEN.y / 2.0 + 16.0, 1.0)),
+            ..default()
+        },
+        Foreground,
+    ));
+
+    commands.spawn((
+        SpriteSheetBundle {
             texture_atlas: images.cursor.clone(),
             sprite: TextureAtlasSprite::new(0),
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
@@ -541,7 +551,7 @@ pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
         SpriteSheetBundle {
             texture_atlas: images.tank.clone(),
             sprite: TextureAtlasSprite::new(0),
-            transform: Transform::from_translation(Vec3::new(0.0, -SCREEN.y / 2.0 + 16.0, 2.0)),
+            transform: Transform::from_translation(Vec3::new(0.0, -SCREEN.y / 2.0 + 24.0, 2.0)),
             ..default()
         },
         CannonBase,
@@ -549,22 +559,6 @@ pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
     ));
 
     tank.add_child(cannon);
-}
-
-pub fn stage_colors(
-    mut foregrounds: Query<(&mut Sprite), (With<Foreground>)>,
-    mut cameras: Query<(&mut Camera2d)>,
-    stage: Res<StageHandle>,
-    stages: Res<Assets<Stage>>,
-) {
-    let stage = stages.get(&stage.0).unwrap();
-    for mut sprite in foregrounds.iter_mut() {
-        // why is this NOT WORKING?!
-        sprite.color = Color::from(color_from_vec(&stage.fg_cor));
-    }
-    for mut camera in cameras.iter_mut() {
-        camera.clear_color = ClearColorConfig::Custom(Color::from(color_from_vec(&stage.bg_cor)));
-    }
 }
 
 /* UI
@@ -617,13 +611,6 @@ pub fn game_over_ui(mut contexts: EguiContexts) {
                     .color(Color32::WHITE),
             )
         });
-}
-
-pub fn color_from_vec(color: &[u8]) -> Color {
-    match color {
-        [r, g, b] => Color::rgb(*r as f32 / 255.0, *g as f32 / 255.0, *b as f32 / 255.0),
-        _ => Color::rgb(1.0, 1.0, 1.0),
-    }
 }
 
 mod spawner {
@@ -705,7 +692,7 @@ mod spawner {
                     ..default()
                 },
                 Missile {
-                    dest: Vec2::new(dest_x, -SCREEN.y / 2.0),
+                    dest: Vec2::new(dest_x, -SCREEN.y / 2.0 + 16.0),
                     lock_id: id_counter.next(),
                     vel: stage.missile_speed,
                 },

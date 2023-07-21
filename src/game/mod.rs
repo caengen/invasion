@@ -3,12 +3,13 @@ use std::time::Duration;
 use self::{
     components::{EnemySpawn, ExplosionEvent, IdCounter, MissileArrivalEvent, PhysicsSet, Score},
     effects::{flick_system, timed_removal_system},
+    prelude::stage_colors,
     systems::{
         animate_sprite_indices, animate_sprite_steps, change_colors,
         explosion_event_listener_system, explosion_system, flame_engulf_system, game_keys,
         game_over_ui, gizmo_missile_trails, health_ui, missile_arrival_event_listner, move_cursor,
         move_missile, move_ufo, reset_game_listener, rotate_player, score_ui, setup_player,
-        spawn_enemies, stage_colors, teardown,
+        spawn_enemies, teardown,
     },
 };
 use crate::GameState;
