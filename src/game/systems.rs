@@ -22,12 +22,17 @@ use super::{
 
 pub fn game_keys(
     buttons: Res<Input<MouseButton>>,
+    keyboard: Res<Input<KeyCode>>,
     cursor_pos: Query<&Transform, (With<Cursor>, Without<CannonBase>)>,
     mut id_counter: ResMut<IdCounter>,
     mut commands: Commands,
     images: Res<ImageAssets>,
     player: Query<(Entity, With<Player>)>,
-    cannon_base: Query<&Transform, (With<CannonBase>, Without<Cursor>)>,
+    mut cannon_base: Query<
+        (Entity, &mut Transform, Has<AnimationIndices>),
+        (With<CannonBase>, Without<Cursor>),
+    >,
+    time: Res<Time>,
 ) {
     if buttons.just_pressed(MouseButton::Left) {
         let player_entity = player.single().0;
@@ -40,13 +45,13 @@ pub fn game_keys(
             AnimeRemoveOnFinish,
         ));
 
-        let transform = cursor_pos.single();
+        let target_transform = cursor_pos.single();
         let id = id_counter.next();
         commands.spawn((
             SpriteSheetBundle {
                 texture_atlas: images.cursor.clone(),
                 sprite: TextureAtlasSprite::new(1),
-                transform: *transform,
+                transform: *target_transform,
                 ..default()
             },
             TargetLock(id),
@@ -57,21 +62,41 @@ pub fn game_keys(
             TimedRemoval(Timer::from_seconds(3.0, TimerMode::Once)),
         ));
 
-        let spawn_pos = cannon_base.single();
+        let (_, base_transform, _) = cannon_base.single();
+
         commands.spawn((
             SpriteSheetBundle {
                 texture_atlas: images.cursor.clone(),
                 sprite: TextureAtlasSprite::new(3),
-                transform: *spawn_pos,
+                transform: *base_transform,
                 ..default()
             },
             Missile {
-                dest: transform.translation.truncate(),
+                dest: target_transform.translation.truncate(),
                 lock_id: id,
                 vel: PLAYER_MISSILE_SPEED,
             },
             Explodable,
         ));
+    }
+
+    let (entity, mut transform, has_anim) = cannon_base.single_mut();
+    if keyboard.any_pressed([KeyCode::A, KeyCode::D]) {
+        if !has_anim {
+            commands.entity(entity).insert((AnimationIndices {
+                first: 0,
+                last: 1,
+                timer: Timer::from_seconds(0.3, TimerMode::Repeating),
+            },));
+        }
+        if keyboard.pressed(KeyCode::A) {
+            transform.translation.x -= 50.0 * time.delta_seconds();
+        }
+        if keyboard.pressed(KeyCode::D) {
+            transform.translation.x += 50.0 * time.delta_seconds();
+        }
+    } else if has_anim {
+        commands.entity(entity).remove::<AnimationIndices>();
     }
 }
 
