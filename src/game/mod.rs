@@ -8,7 +8,7 @@ use self::{
     effects::{flick_system, timed_removal_system},
     prelude::stage_colors,
     systems::{
-        animate_sprite_indices, animate_sprite_steps, change_colors,
+        animate_sprite_indices, animate_sprite_steps, change_colors, drop_bombs,
         explosion_event_listener_system, explosion_system, flame_engulf_system, game_keys,
         game_over_ui, gizmo_missile_trails, health_ui, missile_arrival_event_listner, move_cursor,
         move_missile, move_ufo, reset_game_listener, rotate_player, score_ui, setup_player,
@@ -52,6 +52,7 @@ impl Plugin for GamePlugin {
                             move_missile,
                             gizmo_missile_trails,
                             move_ufo,
+                            drop_bombs,
                             timed_removal_system,
                             missile_arrival_event_listner,
                             explosion_event_listener_system,

@@ -12,10 +12,10 @@ use crate::{GameState, ImageAssets, MainCamera, SCREEN};
 use super::{
     components::{
         AnimationIndices, AnimationStep, AnimeRemoveOnFinish, Cannon, CannonBase, ChainedMeta,
-        Cursor, Enemy, EnemySpawn, Engulfable, Explodable, Explosion, ExplosionEvent,
-        ExplosionMode, FlameRadius, Foreground, Health, IdCounter, Missile, MissileArrivalEvent,
-        Player, Score, Scoring, SpawnPoint, SplitTimer, Stepper, TargetLock, Ufo, MAX_SPLIT,
-        PLAYER_MISSILE_SPEED, SPLIT_CHANCE,
+        Cursor, DropBombTimer, Enemy, EnemySpawn, Engulfable, Explodable, Explosion,
+        ExplosionEvent, ExplosionMode, FlameRadius, Foreground, Health, IdCounter, Missile,
+        MissileArrivalEvent, Player, Score, Scoring, SpawnPoint, SplitTimer, Stepper, TargetLock,
+        Ufo, DROP_BOMB_CHANCE, MAX_SPLIT, PLAYER_MISSILE_SPEED, SPLIT_CHANCE,
     },
     effects::{Flick, TimedRemoval},
     prelude::{color_from_vec, Stage, StageHandle},
@@ -115,6 +115,37 @@ pub fn gizmo_missile_trails(
             spawn_point.0,
             transform.translation.truncate(),
             color_from_vec(&stage.trail_cor),
+        );
+    }
+}
+
+pub fn drop_bombs(
+    mut commands: Commands,
+    mut ufos: Query<(Entity, &Transform, &mut DropBombTimer), (With<Ufo>, With<Enemy>)>,
+    mut id_counter: ResMut<IdCounter>,
+    images: Res<ImageAssets>,
+    mut global_rng: ResMut<GlobalRng>,
+    time: Res<Time>,
+    stage: Res<StageHandle>,
+    stages: Res<Assets<Stage>>,
+) {
+    let mut rng = RngComponent::from(&mut global_rng);
+    for (entity, transform, mut timer) in ufos.iter_mut() {
+        timer.0.tick(time.delta());
+
+        if !timer.0.just_finished() || !rng.chance(DROP_BOMB_CHANCE) {
+            continue;
+        }
+
+        commands.entity(entity).remove::<DropBombTimer>();
+        let stage = stages.get(&stage.0).unwrap();
+        spawner::missile(
+            &mut commands,
+            &mut rng,
+            &mut id_counter,
+            images.cursor.clone(),
+            &stage,
+            Some(transform.translation.truncate()),
         );
     }
 }
@@ -669,8 +700,8 @@ mod spawner {
     use crate::{
         game::{
             components::{
-                AnimationIndices, Enemy, Engulfable, Explodable, Foreground, IdCounter, Missile,
-                SpawnPoint, SplitTimer, Ufo, MISSILE_SPEED,
+                AnimationIndices, DropBombTimer, Enemy, Engulfable, Explodable, Foreground,
+                IdCounter, Missile, SpawnPoint, SplitTimer, Ufo, MISSILE_SPEED,
             },
             prelude::Stage,
         },
@@ -701,6 +732,7 @@ mod spawner {
             Engulfable,
             Enemy,
             Foreground,
+            DropBombTimer(Timer::from_seconds(1.0, TimerMode::Repeating)),
         ));
     }
 

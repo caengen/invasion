@@ -13,6 +13,7 @@ pub const ENEMY_SPAWN_INTERVAL_SECS: u64 = 3;
 pub const SPLIT_INTERVAL_SECS: u64 = 3;
 pub const MAX_SPLIT: usize = 2;
 pub const SPLIT_CHANCE: f64 = 0.1;
+pub const DROP_BOMB_CHANCE: f64 = 0.3;
 
 #[derive(From)]
 pub enum Scoring {
@@ -185,3 +186,5 @@ pub struct ExplosionEvent {
 pub struct Foreground;
 #[derive(Component)]
 pub struct TextColor;
+#[derive(Component)]
+pub struct DropBombTimer(pub Timer);
