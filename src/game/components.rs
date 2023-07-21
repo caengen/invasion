@@ -24,6 +24,10 @@ pub enum PhysicsSet {
 #[derive(Component)]
 pub struct Player;
 #[derive(Component)]
+pub struct Cannon;
+#[derive(Component)]
+pub struct CannonBase;
+#[derive(Component)]
 pub struct Ufo(pub Vec2);
 #[derive(Component)]
 pub struct Enemy;

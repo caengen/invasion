@@ -11,10 +11,10 @@ use crate::{GameState, ImageAssets, MainCamera, SCREEN};
 
 use super::{
     components::{
-        AnimationIndices, AnimationStep, AnimeRemoveOnFinish, ChainedMeta, Cursor, Enemy,
-        EnemySpawn, Engulfable, Explodable, Explosion, ExplosionEvent, ExplosionMode, FlameRadius,
-        Foreground, Health, IdCounter, Missile, MissileArrivalEvent, Player, Score, Scoring,
-        SpawnPoint, Stepper, TargetLock, Ufo, PLAYER_MISSILE_SPEED,
+        AnimationIndices, AnimationStep, AnimeRemoveOnFinish, Cannon, CannonBase, ChainedMeta,
+        Cursor, Enemy, EnemySpawn, Engulfable, Explodable, Explosion, ExplosionEvent,
+        ExplosionMode, FlameRadius, Foreground, Health, IdCounter, Missile, MissileArrivalEvent,
+        Player, Score, Scoring, SpawnPoint, Stepper, TargetLock, Ufo, PLAYER_MISSILE_SPEED,
     },
     effects::{Flick, TimedRemoval},
     prelude::{Stage, StageHandle},
@@ -22,11 +22,12 @@ use super::{
 
 pub fn game_keys(
     buttons: Res<Input<MouseButton>>,
-    cursor_pos: Query<&Transform, With<Cursor>>,
+    cursor_pos: Query<&Transform, (With<Cursor>, Without<CannonBase>)>,
     mut id_counter: ResMut<IdCounter>,
     mut commands: Commands,
     images: Res<ImageAssets>,
     player: Query<(Entity, With<Player>)>,
+    cannon_base: Query<&Transform, (With<CannonBase>, Without<Cursor>)>,
 ) {
     if buttons.just_pressed(MouseButton::Left) {
         let player_entity = player.single().0;
@@ -56,11 +57,12 @@ pub fn game_keys(
             TimedRemoval(Timer::from_seconds(3.0, TimerMode::Once)),
         ));
 
+        let spawn_pos = cannon_base.single();
         commands.spawn((
             SpriteSheetBundle {
                 texture_atlas: images.cursor.clone(),
                 sprite: TextureAtlasSprite::new(3),
-                transform: Transform::from_translation(Vec3::new(0.0, -SCREEN.y / 2.0, 1.0)),
+                transform: *spawn_pos,
                 ..default()
             },
             Missile {
@@ -200,14 +202,20 @@ pub fn move_cursor(
 }
 
 pub fn rotate_player(
-    mut player: Query<&mut Transform, (With<Player>, Without<Cursor>)>,
-    cursor: Query<&Transform, (With<Cursor>, Without<Player>)>,
+    cannon_base: Query<&Transform, (With<CannonBase>, Without<Cursor>, Without<Cannon>)>,
+    mut cannon: Query<&mut Transform, (With<Cannon>, Without<Cursor>, Without<CannonBase>)>,
+    cursor: Query<&Transform, (With<Cursor>, Without<CannonBase>, Without<Cannon>)>,
 ) {
-    for mut transform in player.iter_mut() {
+    for transform in cannon_base.iter() {
         for cursor in cursor.iter() {
-            let direction = cursor.translation.truncate() - transform.translation.truncate();
+            // let direction = cursor.translation.truncate() - transform.translation.truncate();
+            let a = transform.translation.truncate();
+            let b = cursor.translation.truncate();
+            let direction = b - a;
             let angle = direction.y.atan2(direction.x) - 90.0_f32.to_radians();
-            transform.rotation = Quat::from_rotation_z(angle);
+            for mut transform in cannon.iter_mut() {
+                transform.rotation = Quat::from_rotation_z(angle);
+            }
         }
     }
 }
@@ -489,17 +497,33 @@ pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
         Foreground,
     ));
 
-    commands.spawn((
+    let cannon = commands
+        .spawn((
+            SpriteSheetBundle {
+                texture_atlas: images.cannon.clone(),
+                sprite: TextureAtlasSprite::new(0),
+                transform: Transform::from_translation(Vec3::new(0.0, -2.0, 1.0)),
+                ..default()
+            },
+            Player,
+            Cannon,
+            Health { max: 3, current: 3 },
+            Foreground,
+        ))
+        .id();
+
+    let mut tank = commands.spawn((
         SpriteSheetBundle {
-            texture_atlas: images.cannon.clone(),
+            texture_atlas: images.tank.clone(),
             sprite: TextureAtlasSprite::new(0),
-            transform: Transform::from_translation(Vec3::new(0.0, -SCREEN.y / 2.0, 1.0)),
+            transform: Transform::from_translation(Vec3::new(0.0, -SCREEN.y / 2.0 + 16.0, 2.0)),
             ..default()
         },
-        Player,
-        Health { max: 3, current: 3 },
+        CannonBase,
         Foreground,
     ));
+
+    tank.add_child(cannon);
 }
 
 pub fn stage_colors(

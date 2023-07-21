@@ -13,7 +13,7 @@ use bevy_egui::{
     egui::{FontData, FontDefinitions, FontFamily},
     EguiContexts, EguiPlugin,
 };
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
+// use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_turborand::prelude::RngPlugin;
 use config::Debug;
 use enter_stage::EnterStagePlugin;
@@ -42,9 +42,15 @@ pub struct ImageAssets {
     pub heart_full: Handle<Image>,
     #[asset(path = "textures/heart-empty.png")]
     pub heart_empty: Handle<Image>,
-    #[asset(texture_atlas(tile_size_x = 32.0, tile_size_y = 32.0, columns = 4, rows = 1))]
-    #[asset(path = "textures/cannon.png")]
+    #[asset(texture_atlas(tile_size_x = 48.0, tile_size_y = 48.0, columns = 4, rows = 1))]
+    #[asset(path = "textures/long_cannon.png")]
     pub cannon: Handle<TextureAtlas>,
+    #[asset(texture_atlas(tile_size_x = 48.0, tile_size_y = 32.0, columns = 2, rows = 1))]
+    #[asset(path = "textures/tank_base_filled.png")]
+    pub tank: Handle<TextureAtlas>,
+    #[asset(texture_atlas(tile_size_x = 495.0, tile_size_y = 32.0, columns = 1, rows = 1))]
+    #[asset(path = "textures/ground.png")]
+    pub ground: Handle<TextureAtlas>,
 }
 
 #[derive(States, Hash, Clone, PartialEq, Eq, Debug, Default)]

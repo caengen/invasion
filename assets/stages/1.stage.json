@@ -6,7 +6,7 @@
   "missile_spawn_min": 1,
   "missile_spawn_max": 2,
   "missile_speed": 35.0,
-  "ufo_speed": 25.0,
+  "ufo_speed": 75.0,
   "ufo_chance": 0.2,
   "text_cor": [
     255,
