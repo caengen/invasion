@@ -1,0 +1,31 @@
+{
+  "name": "Stage 1",
+  "bread": "The invasion begins.",
+  "spawn_rate": 3.0,
+  "enemies_count": 10,
+  "missile_spawn_min": 1,
+  "missile_spawn_max": 2,
+  "missile_speed": 35.0,
+  "ufo_speed": 75.0,
+  "ufo_chance": 0.2,
+  "text_cor": [
+    255,
+    231,
+    155
+  ],
+  "bg_cor": [
+    64,
+    18,
+    139
+  ],
+  "fg_cor": [
+    221,
+    88,
+    214
+  ],
+  "trail_cor": [
+    147,
+    54,
+    180
+  ]
+}
