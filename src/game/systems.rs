@@ -14,7 +14,8 @@ use super::{
         AnimationIndices, AnimationStep, AnimeRemoveOnFinish, Cannon, CannonBase, ChainedMeta,
         Cursor, Enemy, EnemySpawn, Engulfable, Explodable, Explosion, ExplosionEvent,
         ExplosionMode, FlameRadius, Foreground, Health, IdCounter, Missile, MissileArrivalEvent,
-        Player, Score, Scoring, SpawnPoint, Stepper, TargetLock, Ufo, PLAYER_MISSILE_SPEED,
+        Player, Score, Scoring, SpawnPoint, SplitTimer, Stepper, TargetLock, Ufo, MAX_SPLIT,
+        PLAYER_MISSILE_SPEED, SPLIT_CHANCE,
     },
     effects::{Flick, TimedRemoval},
     prelude::{color_from_vec, Stage, StageHandle},
@@ -118,6 +119,45 @@ pub fn gizmo_missile_trails(
     }
 }
 
+pub fn split_missiles(
+    mut commands: Commands,
+    mut query: Query<(Entity, &Transform), (With<Missile>, With<Enemy>)>,
+    mut id_counter: ResMut<IdCounter>,
+    images: Res<ImageAssets>,
+    mut global_rng: ResMut<GlobalRng>,
+    time: Res<Time>,
+    mut split_timer: ResMut<SplitTimer>,
+    stage: Res<StageHandle>,
+    stages: Res<Assets<Stage>>,
+) {
+    split_timer.0.tick(time.delta());
+
+    if !split_timer.0.just_finished() && query.iter().len() > 0 {
+        return;
+    }
+    let mut rng = RngComponent::from(&mut global_rng);
+    if !rng.chance(SPLIT_CHANCE) {
+        return;
+    }
+    let index = rng.usize(0..query.iter().len());
+    let res = query.iter_mut().nth(index);
+
+    if let Some((entity, transform)) = res {
+        let stage = stages.get(&stage.0).unwrap();
+        commands.entity(entity).despawn();
+        for _ in 0..MAX_SPLIT {
+            spawner::missile(
+                &mut commands,
+                &mut rng,
+                &mut id_counter,
+                images.cursor.clone(),
+                &stage,
+                Some(transform.translation.truncate()),
+            );
+        }
+    }
+}
+
 pub fn spawn_enemies(
     mut id_counter: ResMut<IdCounter>,
     mut commands: Commands,
@@ -151,6 +191,7 @@ pub fn spawn_enemies(
             &mut id_counter,
             images.cursor.clone(),
             &stage,
+            None,
         );
     }
 }
@@ -629,7 +670,7 @@ mod spawner {
         game::{
             components::{
                 AnimationIndices, Enemy, Engulfable, Explodable, Foreground, IdCounter, Missile,
-                SpawnPoint, Ufo, MISSILE_SPEED,
+                SpawnPoint, SplitTimer, Ufo, MISSILE_SPEED,
             },
             prelude::Stage,
         },
@@ -669,11 +710,14 @@ mod spawner {
         id_counter: &mut ResMut<IdCounter>,
         images: Handle<TextureAtlas>,
         stage: &Stage,
+        origin: Option<Vec2>,
     ) {
-        // lag random position fra topp med random dest
-        // fn ticker hvert sekund. Opprett en strek
-        // kan ikke tegne strek fordi eg har ikke polyogon rammeverket........
-        let origin_x = rng.usize(-(SCREEN.x / 2.0) as usize..(SCREEN.x / 2.0) as usize) as f32;
+        let origin = origin.unwrap_or_else(|| {
+            let x = rng.usize(-(SCREEN.x / 2.0) as usize..(SCREEN.x / 2.0) as usize) as f32;
+            let y = SCREEN.y / 2.0;
+            vec2(x, y)
+        });
+
         let sign = if rng.bool() { 1.0 } else { -1.0 };
         let mut dest_x = sign * rng.usize(0..(SCREEN.x / 4.0) as usize) as f32;
         if dest_x < -SCREEN.x || dest_x > SCREEN.x {
@@ -684,11 +728,7 @@ mod spawner {
                 SpriteSheetBundle {
                     texture_atlas: images,
                     sprite: TextureAtlasSprite::new(3),
-                    transform: Transform::from_translation(Vec3::new(
-                        origin_x,
-                        SCREEN.y / 2.0,
-                        1.0,
-                    )),
+                    transform: Transform::from_translation(Vec3::new(origin.x, origin.y, 1.0)),
                     ..default()
                 },
                 Missile {
@@ -698,16 +738,13 @@ mod spawner {
                 },
                 Explodable,
                 Engulfable,
-                SpawnPoint(vec2(origin_x, SCREEN.y / 2.0)),
+                SpawnPoint(origin),
                 Enemy,
                 Foreground,
             ))
             .id();
 
-        let shape = shapes::Line(
-            vec2(origin_x, SCREEN.y / 2.0),
-            vec2(dest_x, -SCREEN.y / 2.0),
-        );
+        let shape = shapes::Line(vec2(origin.x, origin.y), vec2(dest_x, -SCREEN.y / 2.0));
         commands.spawn((
             ShapeBundle {
                 path: GeometryBuilder::build_as(&shape),

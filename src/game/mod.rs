@@ -1,7 +1,10 @@
 use std::time::Duration;
 
 use self::{
-    components::{EnemySpawn, ExplosionEvent, IdCounter, MissileArrivalEvent, PhysicsSet, Score},
+    components::{
+        EnemySpawn, ExplosionEvent, IdCounter, MissileArrivalEvent, PhysicsSet, Score, SplitTimer,
+        ENEMY_SPAWN_INTERVAL_SECS, SPLIT_INTERVAL_SECS,
+    },
     effects::{flick_system, timed_removal_system},
     prelude::stage_colors,
     systems::{
@@ -9,7 +12,7 @@ use self::{
         explosion_event_listener_system, explosion_system, flame_engulf_system, game_keys,
         game_over_ui, gizmo_missile_trails, health_ui, missile_arrival_event_listner, move_cursor,
         move_missile, move_ufo, reset_game_listener, rotate_player, score_ui, setup_player,
-        spawn_enemies, teardown,
+        spawn_enemies, split_missiles, teardown,
     },
 };
 use crate::GameState;
@@ -45,6 +48,7 @@ impl Plugin for GamePlugin {
                         change_colors,
                         (
                             spawn_enemies,
+                            split_missiles,
                             move_missile,
                             gizmo_missile_trails,
                             move_ufo,
@@ -72,7 +76,11 @@ impl Plugin for GamePlugin {
             .insert_resource(IdCounter(0))
             .insert_resource(Score(0))
             .insert_resource(EnemySpawn(Timer::new(
-                Duration::from_secs(3),
+                Duration::from_secs(ENEMY_SPAWN_INTERVAL_SECS),
+                TimerMode::Repeating,
+            )))
+            .insert_resource(SplitTimer(Timer::new(
+                Duration::from_secs(SPLIT_INTERVAL_SECS),
                 TimerMode::Repeating,
             )));
     }
