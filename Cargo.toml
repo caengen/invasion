@@ -13,7 +13,6 @@ opt-level = 3
 [profile.release]
 lto = "thin"
 opt-level = "z"
-strip = "symbols"
 codegen-units = 1
 
 [dependencies]
