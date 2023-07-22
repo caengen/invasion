@@ -196,3 +196,5 @@ pub struct DropBombTimer(pub Timer);
 pub struct MissileReserve(pub usize);
 #[derive(Component)]
 pub struct City;
+#[derive(Component)]
+pub struct Destroyed;

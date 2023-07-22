@@ -12,10 +12,11 @@ use crate::{GameState, ImageAssets, MainCamera, SCREEN};
 use super::{
     components::{
         AnimationIndices, AnimationStep, AnimeRemoveOnFinish, Cannon, CannonBase, ChainedMeta,
-        City, Cursor, DropBombTimer, Enemy, EnemySpawn, Engulfable, Explodable, Explosion,
-        ExplosionEvent, ExplosionMode, FlameRadius, Foreground, Health, IdCounter, Missile,
-        MissileArrivalEvent, MissileReserve, Player, Score, Scoring, SpawnPoint, SplitTimer,
-        Stepper, TargetLock, Ufo, DROP_BOMB_CHANCE, MAX_SPLIT, PLAYER_MISSILE_SPEED, SPLIT_CHANCE,
+        City, Cursor, Destroyed, DropBombTimer, Enemy, EnemySpawn, Engulfable, Explodable,
+        Explosion, ExplosionEvent, ExplosionMode, FlameRadius, Foreground, Health, IdCounter,
+        Missile, MissileArrivalEvent, MissileReserve, Player, Score, Scoring, SpawnPoint,
+        SplitTimer, Stepper, TargetLock, Ufo, DROP_BOMB_CHANCE, MAX_SPLIT, PLAYER_MISSILE_SPEED,
+        SPLIT_CHANCE,
     },
     effects::{Flick, TimedRemoval},
     prelude::{color_from_vec, Stage, StageHandle},
@@ -462,10 +463,11 @@ pub fn explosion_event_listener_system(
 }
 
 pub fn explode_city(
-    mut cities: Query<(&Transform, &mut TextureAtlasSprite), With<City>>,
+    mut commands: Commands,
+    mut cities: Query<(Entity, &Transform, &mut TextureAtlasSprite), With<City>>,
     flames: Query<(&Transform, &Stepper<FlameRadius, i32>), With<Explosion>>,
 ) {
-    for (city_transform, mut city_sprite) in cities.iter_mut() {
+    for (city_entity, city_transform, mut city_sprite) in cities.iter_mut() {
         for (flame_transform, flame_stepper) in flames.iter() {
             let distance = city_transform
                 .translation
@@ -473,17 +475,25 @@ pub fn explode_city(
                 .distance(flame_transform.translation.truncate());
             if distance < flame_stepper.current as f32 + 16.0 {
                 city_sprite.index = 1;
+                commands.entity(city_entity).insert(Destroyed);
             }
         }
+    }
+}
+
+pub fn defeat(
+    mut next_state: ResMut<NextState<GameState>>,
+    cities: Query<(&Transform, &mut TextureAtlasSprite), (With<City>, Without<Destroyed>)>,
+) {
+    if cities.iter().count() == 0 {
+        next_state.set(GameState::GameOver);
     }
 }
 
 pub fn missile_arrival_event_listner(
     mut commands: Commands,
     mut missile_expl_evnt: EventReader<MissileArrivalEvent>,
-    mut player_health: Query<&mut Health, With<Player>>,
     target_locks: Query<(Entity, &TargetLock, &Transform), Without<Missile>>,
-    mut next_state: ResMut<NextState<GameState>>,
     mut explosion_event: EventWriter<ExplosionEvent>,
 ) {
     for MissileArrivalEvent {
