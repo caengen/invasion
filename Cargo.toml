@@ -11,7 +11,10 @@ opt-level = 1
 opt-level = 3
 
 [profile.release]
-lto = "z"
+lto = "thin"
+opt-level = "z"
+strip = "symbols"
+codegen-units = 1
 
 [dependencies]
 bevy = "0.11"
