@@ -51,6 +51,8 @@ pub struct ImageAssets {
     #[asset(texture_atlas(tile_size_x = 495.0, tile_size_y = 32.0, columns = 1, rows = 1))]
     #[asset(path = "textures/ground.png")]
     pub ground: Handle<TextureAtlas>,
+    #[asset(path = "textures/icons.png")]
+    pub missile: Handle<Image>,
 }
 
 #[derive(States, Hash, Clone, PartialEq, Eq, Debug, Default)]

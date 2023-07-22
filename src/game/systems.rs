@@ -14,8 +14,8 @@ use super::{
         AnimationIndices, AnimationStep, AnimeRemoveOnFinish, Cannon, CannonBase, ChainedMeta,
         Cursor, DropBombTimer, Enemy, EnemySpawn, Engulfable, Explodable, Explosion,
         ExplosionEvent, ExplosionMode, FlameRadius, Foreground, Health, IdCounter, Missile,
-        MissileArrivalEvent, Player, Score, Scoring, SpawnPoint, SplitTimer, Stepper, TargetLock,
-        Ufo, DROP_BOMB_CHANCE, MAX_SPLIT, PLAYER_MISSILE_SPEED, SPLIT_CHANCE,
+        MissileArrivalEvent, MissileReserve, Player, Score, Scoring, SpawnPoint, SplitTimer,
+        Stepper, TargetLock, Ufo, DROP_BOMB_CHANCE, MAX_SPLIT, PLAYER_MISSILE_SPEED, SPLIT_CHANCE,
     },
     effects::{Flick, TimedRemoval},
     prelude::{color_from_vec, Stage, StageHandle},
@@ -28,7 +28,7 @@ pub fn game_keys(
     mut id_counter: ResMut<IdCounter>,
     mut commands: Commands,
     images: Res<ImageAssets>,
-    player: Query<(Entity, With<Player>)>,
+    mut player: Query<((Entity, &mut MissileReserve), With<Player>)>,
     mut cannon_base: Query<
         (Entity, &mut Transform, Has<AnimationIndices>),
         (With<CannonBase>, Without<Cursor>),
@@ -36,7 +36,7 @@ pub fn game_keys(
     time: Res<Time>,
 ) {
     if buttons.just_pressed(MouseButton::Left) {
-        let player_entity = player.single().0;
+        let (player_entity, mut missile_reserve) = player.single_mut().0;
         commands.entity(player_entity).insert((
             AnimationIndices {
                 first: 0,
@@ -45,6 +45,12 @@ pub fn game_keys(
             },
             AnimeRemoveOnFinish,
         ));
+
+        if missile_reserve.0 == 0 {
+            return;
+        } else {
+            missile_reserve.0 -= 1;
+        }
 
         let target_transform = cursor_pos.single();
         let id = id_counter.next();
@@ -615,6 +621,7 @@ pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
             Player,
             Cannon,
             Health { max: 3, current: 3 },
+            MissileReserve(30),
             Foreground,
         ))
         .id();
@@ -636,6 +643,28 @@ pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
 /* UI
  * Systems that are called every frame to update the egui UI
  */
+pub fn ammo_ui(
+    mut contexts: EguiContexts,
+    images: Res<ImageAssets>,
+    missile_ammo: Query<&MissileReserve, With<Player>>,
+) {
+    let ammo = missile_ammo.single();
+    let ammo_id = contexts.add_image(images.missile.clone_weak());
+
+    egui::Area::new("Ammo")
+        .anchor(Align2::LEFT_TOP, egui::emath::vec2(10., 5.))
+        .show(contexts.ctx_mut(), |ui: &mut egui::Ui| {
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
+                ui.image(ammo_id, egui::emath::vec2(16., 16.));
+                ui.label(
+                    RichText::new(format!("{:0>2}", ammo.0))
+                        .font(FontId::proportional(24.))
+                        .color(Color32::WHITE),
+                );
+            });
+        });
+}
+
 pub fn score_ui(mut contexts: EguiContexts, score: Res<Score>) {
     egui::Area::new("Score")
         .anchor(Align2::CENTER_TOP, egui::emath::vec2(10., 5.))

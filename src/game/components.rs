@@ -188,3 +188,5 @@ pub struct Foreground;
 pub struct TextColor;
 #[derive(Component)]
 pub struct DropBombTimer(pub Timer);
+#[derive(Component)]
+pub struct MissileReserve(pub usize);
