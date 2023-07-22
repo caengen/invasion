@@ -8,7 +8,9 @@ Run `cargo run`.
 
 ### Keybindings
 
-| Key            | Action                          |
-| -------------- | ------------------------------- |
-| Mouse movement | Move sight                      |
-| LMB            | Shoot at current sight position |
+| Key             | Action                          |
+| --------------- | ------------------------------- |
+| Mouse movement  | Move sight                      |
+| LMB             | Shoot at current sight position |
+| A / Left Arrow  | Move left                       |
+| D / Right Arrow | Move right                      |

@@ -88,7 +88,7 @@ pub fn game_keys(
     }
 
     let (entity, mut transform, has_anim) = cannon_base.single_mut();
-    if keyboard.any_pressed([KeyCode::A, KeyCode::D]) {
+    if keyboard.any_pressed([KeyCode::A, KeyCode::Left, KeyCode::Right, KeyCode::D]) {
         if !has_anim {
             commands.entity(entity).insert((AnimationIndices {
                 first: 0,
@@ -96,10 +96,10 @@ pub fn game_keys(
                 timer: Timer::from_seconds(0.3, TimerMode::Repeating),
             },));
         }
-        if keyboard.pressed(KeyCode::A) {
+        if keyboard.any_pressed([KeyCode::A, KeyCode::Left]) {
             transform.translation.x -= 50.0 * time.delta_seconds();
         }
-        if keyboard.pressed(KeyCode::D) {
+        if keyboard.any_pressed([KeyCode::D, KeyCode::Right]) {
             transform.translation.x += 50.0 * time.delta_seconds();
         }
     } else if has_anim {
