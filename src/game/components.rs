@@ -85,6 +85,10 @@ impl<T, U> Stepper<T, U> {
         }
     }
 
+    pub fn current(&self) -> Option<&U> {
+        self.steps.get(self.current)
+    }
+
     pub fn is_finished(&self) -> bool {
         self.current == self.steps.len()
     }
@@ -190,3 +194,5 @@ pub struct TextColor;
 pub struct DropBombTimer(pub Timer);
 #[derive(Component)]
 pub struct MissileReserve(pub usize);
+#[derive(Component)]
+pub struct City;

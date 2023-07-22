@@ -12,7 +12,7 @@ use crate::{GameState, ImageAssets, MainCamera, SCREEN};
 use super::{
     components::{
         AnimationIndices, AnimationStep, AnimeRemoveOnFinish, Cannon, CannonBase, ChainedMeta,
-        Cursor, DropBombTimer, Enemy, EnemySpawn, Engulfable, Explodable, Explosion,
+        City, Cursor, DropBombTimer, Enemy, EnemySpawn, Engulfable, Explodable, Explosion,
         ExplosionEvent, ExplosionMode, FlameRadius, Foreground, Health, IdCounter, Missile,
         MissileArrivalEvent, MissileReserve, Player, Score, Scoring, SpawnPoint, SplitTimer,
         Stepper, TargetLock, Ufo, DROP_BOMB_CHANCE, MAX_SPLIT, PLAYER_MISSILE_SPEED, SPLIT_CHANCE,
@@ -461,6 +461,23 @@ pub fn explosion_event_listener_system(
     }
 }
 
+pub fn explode_city(
+    mut cities: Query<(&Transform, &mut TextureAtlasSprite), With<City>>,
+    flames: Query<(&Transform, &Stepper<FlameRadius, i32>), With<Explosion>>,
+) {
+    for (city_transform, mut city_sprite) in cities.iter_mut() {
+        for (flame_transform, flame_stepper) in flames.iter() {
+            let distance = city_transform
+                .translation
+                .truncate()
+                .distance(flame_transform.translation.truncate());
+            if distance < flame_stepper.current as f32 + 16.0 {
+                city_sprite.index = 1;
+            }
+        }
+    }
+}
+
 pub fn missile_arrival_event_listner(
     mut commands: Commands,
     mut missile_expl_evnt: EventReader<MissileArrivalEvent>,
@@ -490,18 +507,18 @@ pub fn missile_arrival_event_listner(
         });
         commands.entity(*id).despawn();
 
-        // Damage player
-        if *is_enemy {
-            let mut health = player_health.single_mut();
-            if health.current > 0 {
-                health.current -= 1;
-            }
+        // // Damage player
+        // if *is_enemy {
+        //     let mut health = player_health.single_mut();
+        //     if health.current > 0 {
+        //         health.current -= 1;
+        //     }
 
-            // should be moved to a separate system
-            if health.current == 0 {
-                next_state.set(GameState::GameOver);
-            }
-        }
+        //     // should be moved to a separate system
+        //     if health.current == 0 {
+        //         next_state.set(GameState::GameOver);
+        //     }
+        // }
     }
 }
 
@@ -638,6 +655,23 @@ pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
     ));
 
     tank.add_child(cannon);
+
+    for i in 0..6 {
+        commands.spawn((
+            SpriteSheetBundle {
+                texture_atlas: images.city.clone(),
+                sprite: TextureAtlasSprite::new(0),
+                transform: Transform::from_translation(Vec3::new(
+                    -SCREEN.x / 2.0 + 41.5 + (82.5 * i as f32),
+                    -SCREEN.y / 2.0 + 32.0,
+                    1.0,
+                )),
+                ..default()
+            },
+            City,
+            Foreground,
+        ));
+    }
 }
 
 /* UI
@@ -648,21 +682,22 @@ pub fn ammo_ui(
     images: Res<ImageAssets>,
     missile_ammo: Query<&MissileReserve, With<Player>>,
 ) {
-    let ammo = missile_ammo.single();
-    let ammo_id = contexts.add_image(images.missile.clone_weak());
+    if let Ok(ammo) = missile_ammo.get_single() {
+        let ammo_id = contexts.add_image(images.missile.clone_weak());
 
-    egui::Area::new("Ammo")
-        .anchor(Align2::LEFT_TOP, egui::emath::vec2(10., 5.))
-        .show(contexts.ctx_mut(), |ui: &mut egui::Ui| {
-            ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
-                ui.image(ammo_id, egui::emath::vec2(16., 16.));
-                ui.label(
-                    RichText::new(format!("{:0>2}", ammo.0))
-                        .font(FontId::proportional(24.))
-                        .color(Color32::WHITE),
-                );
+        egui::Area::new("Ammo")
+            .anchor(Align2::LEFT_TOP, egui::emath::vec2(10., 5.))
+            .show(contexts.ctx_mut(), |ui: &mut egui::Ui| {
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
+                    ui.image(ammo_id, egui::emath::vec2(16., 16.));
+                    ui.label(
+                        RichText::new(format!("{:0>2}", ammo.0))
+                            .font(FontId::proportional(24.))
+                            .color(Color32::WHITE),
+                    );
+                });
             });
-        });
+    }
 }
 
 pub fn score_ui(mut contexts: EguiContexts, score: Res<Score>) {
@@ -675,29 +710,6 @@ pub fn score_ui(mut contexts: EguiContexts, score: Res<Score>) {
                         .font(FontId::proportional(24.))
                         .color(Color32::WHITE),
                 );
-            });
-        });
-}
-
-pub fn health_ui(
-    images: Res<ImageAssets>,
-    player: Query<(&Health, With<Player>)>,
-    mut contexts: EguiContexts,
-) {
-    let heart_image_id = contexts.add_image(images.heart_full.clone_weak());
-    let heart_empty_image_id = contexts.add_image(images.heart_empty.clone_weak());
-
-    egui::Area::new("Health")
-        .anchor(Align2::RIGHT_TOP, egui::emath::vec2(-10., 5.))
-        .show(contexts.ctx_mut(), |ui| {
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
-                let (health, _) = player.single();
-                for _ in 0..health.current {
-                    ui.image(heart_image_id, egui::emath::vec2(8., 8.));
-                }
-                for _ in 0..(health.max - health.current) {
-                    ui.image(heart_empty_image_id, egui::emath::vec2(8., 8.));
-                }
             });
         });
 }
