@@ -11,7 +11,7 @@ opt-level = 1
 opt-level = 3
 
 [profile.release]
-lto = "thin"
+lto = "z"
 
 [dependencies]
 bevy = "0.11"

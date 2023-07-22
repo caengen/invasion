@@ -485,7 +485,7 @@ pub fn missile_arrival_event_listner(
         commands.entity(*id).despawn();
 
         // Damage player
-        if *is_enemy && missile.dest.y <= -(SCREEN.y / 2.0).ceil() {
+        if *is_enemy {
             let mut health = player_health.single_mut();
             if health.current > 0 {
                 health.current -= 1;
