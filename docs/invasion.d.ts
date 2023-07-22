@@ -53,16 +53,17 @@ export interface InitOutput {
   readonly wgpu_render_bundle_insert_debug_marker: (a: number, b: number) => void;
   readonly wgpu_render_pass_set_index_buffer: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly wgpu_render_bundle_push_debug_group: (a: number, b: number) => void;
-  readonly __wbindgen_export_0: (a: number) => number;
-  readonly __wbindgen_export_1: (a: number, b: number, c: number) => number;
+  readonly __wbindgen_malloc: (a: number) => number;
+  readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;
   readonly __wbindgen_export_2: WebAssembly.Table;
-  readonly __wbindgen_export_3: (a: number, b: number) => void;
-  readonly __wbindgen_export_4: (a: number, b: number, c: number) => void;
-  readonly __wbindgen_export_5: (a: number, b: number) => void;
-  readonly __wbindgen_export_6: (a: number, b: number, c: number) => void;
-  readonly __wbindgen_export_7: (a: number, b: number, c: number) => void;
-  readonly __wbindgen_export_8: (a: number, b: number) => void;
-  readonly __wbindgen_export_9: (a: number) => void;
+  readonly wasm_bindgen__convert__closures__invoke0_mut__h1f57e2baf5f46d83: (a: number, b: number) => void;
+  readonly wasm_bindgen__convert__closures__invoke1_mut__h1f2f85888dbbc55a: (a: number, b: number, c: number) => void;
+  readonly wasm_bindgen__convert__closures__invoke0_mut__hf82ee2c610ba433d: (a: number, b: number) => void;
+  readonly wasm_bindgen__convert__closures__invoke1_mut__h67a6abb246fe2157: (a: number, b: number, c: number) => void;
+  readonly wasm_bindgen__convert__closures__invoke1_mut__h956768e4c8b194c1: (a: number, b: number, c: number) => void;
+  readonly __wbindgen_free: (a: number, b: number) => void;
+  readonly __wbindgen_exn_store: (a: number) => void;
+  readonly __wbindgen_start: () => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;
