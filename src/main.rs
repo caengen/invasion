@@ -63,10 +63,10 @@ pub enum GameState {
     #[default]
     AssetLoading,
     MainMenu,
-    EnterStage,
+    EnterGame,
     InGame,
     GameOver,
-    LeaveStage,
+    LeaveGame,
 }
 
 /**
@@ -110,7 +110,7 @@ fn main() {
     )
     .add_state::<GameState>()
     .add_loading_state(
-        LoadingState::new(GameState::AssetLoading).continue_to_state(GameState::EnterStage),
+        LoadingState::new(GameState::AssetLoading).continue_to_state(GameState::EnterGame),
     )
     .insert_resource(Debug(cfg.debug))
     .add_collection_to_loading_state::<_, ImageAssets>(GameState::AssetLoading)

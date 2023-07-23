@@ -10,7 +10,7 @@ use crate::{game::prelude::stage_colors, GameState};
 pub struct EnterStagePlugin;
 impl Plugin for EnterStagePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::EnterStage), setup_stage)
+        app.add_systems(OnEnter(GameState::EnterGame), setup_stage)
             .add_systems(
                 Update,
                 (
@@ -19,10 +19,10 @@ impl Plugin for EnterStagePlugin {
                     stage_intro_timer,
                     stage_colors,
                 )
-                    .run_if(in_state(GameState::EnterStage)),
+                    .run_if(in_state(GameState::EnterGame)),
             )
             .add_systems(
-                OnExit(GameState::EnterStage),
+                OnExit(GameState::EnterGame),
                 (setup_resources, teardown_stage).chain(),
             );
     }

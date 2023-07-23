@@ -24,11 +24,11 @@ pub fn setup_resources(
     let stage = stages.get(&stage.0).unwrap();
     commands.insert_resource(Wave(0));
     commands.insert_resource(EnemySpawn(Timer::new(
-        Duration::from_millis((stage.spawn_interval_secs * 1000.0) as u64),
+        Duration::from_millis((stage.spawn_interval_secs(0) * 1000.0) as u64),
         TimerMode::Repeating,
     )));
     commands.insert_resource(SplitTimer(Timer::new(
-        Duration::from_millis((stage.split_interval_secs * 1000.0) as u64),
+        Duration::from_millis((stage.split_interval_secs(0) * 1000.0) as u64),
         TimerMode::Repeating,
     )));
 }

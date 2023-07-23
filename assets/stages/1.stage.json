@@ -12,7 +12,8 @@
   "ufo_chance": 0.1,
   "split_chance": 0.05,
   "max_split": 2,
-  "difficulty_rate": 1.1,
+  "difficulty_base": 1.0,
+  "difficulty_rate": 0.1,
   "text_cor": [
     255,
     231,

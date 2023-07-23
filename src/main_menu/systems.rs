@@ -10,7 +10,7 @@ pub fn transition_to_game(
 ) {
     if keyboard.just_released(KeyCode::Space) {
         keyboard.clear_just_released(KeyCode::Space);
-        next_state.set(GameState::EnterStage);
+        next_state.set(GameState::EnterGame);
     }
 }
 

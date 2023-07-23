@@ -11,22 +11,70 @@ use super::components::Foreground;
 pub struct Stage {
     pub name: String,
     pub bread: String,
-    pub spawn_interval_secs: f32,
-    pub split_interval_secs: f32,
-    pub enemies_count: usize,
-    pub missile_spawn_min: usize,
-    pub missile_spawn_max: usize,
+    spawn_interval_secs: f32,
+    split_interval_secs: f32,
+    enemies_count: usize,
+    missile_spawn_min: usize,
+    missile_spawn_max: usize,
     pub missile_speed: f32,
-    pub ufo_speed: f32,
-    pub drop_bomb_chance: f64,
-    pub ufo_chance: f64,
-    pub split_chance: f64,
-    pub max_split: u8,
-    pub difficulty_rate: f32,
+    ufo_speed: f32,
+    drop_bomb_chance: f64,
+    ufo_chance: f64,
+    split_chance: f64,
+    max_split: u8,
+    difficulty_base: f32,
+    difficulty_rate: f32,
     pub text_cor: Vec<u8>,
     pub bg_cor: Vec<u8>,
     pub fg_cor: Vec<u8>,
     pub trail_cor: Vec<u8>,
+}
+
+impl Stage {
+    pub fn spawn_interval_secs(&self, wave: usize) -> f32 {
+        self.spawn_interval_secs / (self.difficulty_base + wave as f32 * self.difficulty_rate)
+    }
+    pub fn split_interval_secs(&self, wave: usize) -> f32 {
+        self.spawn_interval_secs / (self.difficulty_base + wave as f32 * self.difficulty_rate)
+    }
+    pub fn enemies_count(&self, wave: usize) -> usize {
+        (self.enemies_count as f32 * (self.difficulty_base + wave as f32 * self.difficulty_rate))
+            as usize
+    }
+    pub fn missile_spawn_min(&self, wave: usize) -> usize {
+        (self.missile_spawn_min as f32 * (wave as f32 * self.difficulty_rate)) as usize
+    }
+
+    pub fn missile_spawn_max(&self, wave: usize) -> usize {
+        self.missile_spawn_max + wave
+    }
+
+    pub fn ufo_speed(&self, wave: usize) -> f32 {
+        self.ufo_speed + wave as f32 * self.difficulty_rate * 3.3
+    }
+
+    pub fn drop_bomb_chance(&self, wave: usize) -> f64 {
+        self.drop_bomb_chance + ((wave as f32 / 10.0) * self.difficulty_rate) as f64
+    }
+
+    pub fn ufo_chance(&self, wave: usize) -> f64 {
+        self.ufo_chance + ((wave as f32 / 20.0) + self.difficulty_rate) as f64
+    }
+
+    // increases by 1% per wave
+    pub fn split_chance(&self, wave: usize) -> f64 {
+        self.split_chance + 0.01 * wave as f64
+    }
+
+    // increases by 1 per 10 waves
+    pub fn max_split(&self, wave: usize) -> u8 {
+        self.max_split + (wave / 10) as u8
+    }
+
+    // 1. Fortsett med å konvertere til fns og start å bruke dem i game
+    // 2. lage system viser current wave. kan kanskje være en timer som viser tekst og blokkerer spawning
+    // Kan eg lage en fn -> bool som bare sjekker timer og ikke kj;rer visse systemer hvis true?
+    // 3. lag overgang fra en wave til neste. Vise poeng kalkulering?
 }
 
 #[derive(Resource)]

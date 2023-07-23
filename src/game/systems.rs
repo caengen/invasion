@@ -134,13 +134,14 @@ pub fn drop_bombs(
     time: Res<Time>,
     stage: Res<StageHandle>,
     stages: Res<Assets<Stage>>,
+    wave: Res<Wave>,
 ) {
     let mut rng = RngComponent::from(&mut global_rng);
     let stage = stages.get(&stage.0).unwrap();
     for (entity, transform, mut timer) in ufos.iter_mut() {
         timer.0.tick(time.delta());
 
-        if !timer.0.just_finished() || !rng.chance(stage.drop_bomb_chance) {
+        if !timer.0.just_finished() || !rng.chance(stage.drop_bomb_chance(wave.0)) {
             continue;
         }
 
@@ -166,6 +167,7 @@ pub fn split_missiles(
     mut split_timer: ResMut<SplitTimer>,
     stage: Res<StageHandle>,
     stages: Res<Assets<Stage>>,
+    wave: Res<Wave>,
 ) {
     split_timer.0.tick(time.delta());
 
@@ -175,7 +177,7 @@ pub fn split_missiles(
     let mut rng = RngComponent::from(&mut global_rng);
     let stage = stages.get(&stage.0).unwrap();
 
-    if !rng.chance(stage.split_chance) {
+    if !rng.chance(stage.split_chance(wave.0)) {
         return;
     }
     let index = rng.usize(0..query.iter().len());
@@ -183,7 +185,7 @@ pub fn split_missiles(
 
     if let Some((entity, transform)) = res {
         commands.entity(entity).despawn();
-        for _ in 0..stage.max_split {
+        for _ in 0..stage.max_split(wave.0) {
             spawner::missile(
                 &mut commands,
                 &mut rng,
@@ -205,6 +207,7 @@ pub fn spawn_enemies(
     time: Res<Time>,
     stage: Res<StageHandle>,
     stages: Res<Assets<Stage>>,
+    wave: Res<Wave>,
 ) {
     enemy_spawn.0.tick(time.delta());
 
@@ -218,11 +221,11 @@ pub fn spawn_enemies(
     let stage = stages.get(&stage.0).unwrap();
 
     // spawn ufo
-    if rng.chance(stage.ufo_chance) {
+    if rng.chance(stage.ufo_chance(wave.0)) {
         spawner::ufo(&mut commands, &mut rng, images.cursor.clone());
     }
 
-    for _ in 0..=rng.usize(stage.missile_spawn_min..stage.missile_spawn_max) {
+    for _ in 0..=rng.usize(stage.missile_spawn_min(wave.0)..stage.missile_spawn_max(wave.0)) {
         spawner::missile(
             &mut commands,
             &mut rng,
@@ -246,12 +249,13 @@ pub fn move_ufo(
     time: Res<Time>,
     stage: Res<StageHandle>,
     stages: Res<Assets<Stage>>,
+    wave: Res<Wave>,
 ) {
     let stage = stages.get(&stage.0).unwrap();
     for (entity, ufo, mut transform) in ufos.iter_mut() {
         let dir = ufo.0 - transform.translation.truncate();
         let dist = dir.length();
-        let translation = dir.normalize() * stage.ufo_speed * time.delta_seconds();
+        let translation = dir.normalize() * stage.ufo_speed(wave.0) * time.delta_seconds();
         if dist > translation.length() {
             // move the ufo
             transform.translation += translation.extend(0.0);
