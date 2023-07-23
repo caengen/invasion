@@ -12,14 +12,13 @@ use crate::{GameState, ImageAssets, MainCamera, SCREEN};
 use super::{
     components::{
         AnimationIndices, AnimationStep, AnimeRemoveOnFinish, Cannon, CannonBase, ChainedMeta,
-        City, Cursor, Destroyed, DropBombTimer, Enemy, EnemySpawn, Engulfable, Explodable,
-        Explosion, ExplosionEvent, ExplosionMode, FlameRadius, Foreground, Health, IdCounter,
-        Missile, MissileArrivalEvent, MissileReserve, Player, Score, Scoring, SpawnPoint,
-        SplitTimer, Stepper, TargetLock, Ufo, DROP_BOMB_CHANCE, MAX_SPLIT, PLAYER_MISSILE_SPEED,
-        SPLIT_CHANCE,
+        City, Cursor, Destroyed, DropBombTimer, Enemy, Engulfable, Explodable, Explosion,
+        ExplosionEvent, ExplosionMode, FlameRadius, Foreground, Health, IdCounter, Missile,
+        MissileArrivalEvent, MissileReserve, Player, Score, Scoring, SpawnPoint, Stepper,
+        TargetLock, Ufo, PLAYER_MISSILE_SPEED,
     },
     effects::{Flick, TimedRemoval},
-    prelude::{color_from_vec, Stage, StageHandle},
+    prelude::{color_from_vec, EnemySpawn, SplitTimer, Stage, StageHandle, Wave},
 };
 
 pub fn game_keys(
@@ -137,15 +136,15 @@ pub fn drop_bombs(
     stages: Res<Assets<Stage>>,
 ) {
     let mut rng = RngComponent::from(&mut global_rng);
+    let stage = stages.get(&stage.0).unwrap();
     for (entity, transform, mut timer) in ufos.iter_mut() {
         timer.0.tick(time.delta());
 
-        if !timer.0.just_finished() || !rng.chance(DROP_BOMB_CHANCE) {
+        if !timer.0.just_finished() || !rng.chance(stage.drop_bomb_chance) {
             continue;
         }
 
         commands.entity(entity).remove::<DropBombTimer>();
-        let stage = stages.get(&stage.0).unwrap();
         spawner::missile(
             &mut commands,
             &mut rng,
@@ -174,16 +173,17 @@ pub fn split_missiles(
         return;
     }
     let mut rng = RngComponent::from(&mut global_rng);
-    if !rng.chance(SPLIT_CHANCE) {
+    let stage = stages.get(&stage.0).unwrap();
+
+    if !rng.chance(stage.split_chance) {
         return;
     }
     let index = rng.usize(0..query.iter().len());
     let res = query.iter_mut().nth(index);
 
     if let Some((entity, transform)) = res {
-        let stage = stages.get(&stage.0).unwrap();
         commands.entity(entity).despawn();
-        for _ in 0..MAX_SPLIT {
+        for _ in 0..stage.max_split {
             spawner::missile(
                 &mut commands,
                 &mut rng,
@@ -222,7 +222,7 @@ pub fn spawn_enemies(
         spawner::ufo(&mut commands, &mut rng, images.cursor.clone());
     }
 
-    for _ in 0..rng.usize(stage.missile_spawn_min..stage.missile_spawn_max) {
+    for _ in 0..=rng.usize(stage.missile_spawn_min..stage.missile_spawn_max) {
         spawner::missile(
             &mut commands,
             &mut rng,
@@ -710,6 +710,20 @@ pub fn ammo_ui(
     }
 }
 
+pub fn wave_ui(mut contexts: EguiContexts, wave: Res<Wave>) {
+    egui::Area::new("Wave")
+        .anchor(Align2::RIGHT_TOP, egui::emath::vec2(-50., 5.))
+        .show(contexts.ctx_mut(), |ui: &mut egui::Ui| {
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+                ui.label(
+                    RichText::new(format!("{:0>2}", wave.0 + 1))
+                        .font(FontId::proportional(24.))
+                        .color(Color32::WHITE),
+                );
+            });
+        });
+}
+
 pub fn score_ui(mut contexts: EguiContexts, score: Res<Score>) {
     egui::Area::new("Score")
         .anchor(Align2::CENTER_TOP, egui::emath::vec2(10., 5.))
@@ -752,7 +766,7 @@ mod spawner {
         game::{
             components::{
                 AnimationIndices, DropBombTimer, Enemy, Engulfable, Explodable, Foreground,
-                IdCounter, Missile, SpawnPoint, SplitTimer, Ufo, MISSILE_SPEED,
+                IdCounter, Missile, SpawnPoint, Ufo,
             },
             prelude::Stage,
         },

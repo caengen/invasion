@@ -11,20 +11,26 @@ use super::components::Foreground;
 pub struct Stage {
     pub name: String,
     pub bread: String,
-    // spawn clock in seconds
-    pub spawn_rate: f32,
-    // Amount of enemies to spawn. 0 means infinite
+    pub spawn_interval_secs: f32,
+    pub split_interval_secs: f32,
     pub enemies_count: usize,
     pub missile_spawn_min: usize,
     pub missile_spawn_max: usize,
     pub missile_speed: f32,
     pub ufo_speed: f32,
+    pub drop_bomb_chance: f64,
     pub ufo_chance: f64,
+    pub split_chance: f64,
+    pub max_split: u8,
+    pub difficulty_rate: f32,
     pub text_cor: Vec<u8>,
     pub bg_cor: Vec<u8>,
     pub fg_cor: Vec<u8>,
     pub trail_cor: Vec<u8>,
 }
+
+#[derive(Resource)]
+pub struct Wave(pub usize);
 
 #[derive(Resource)]
 pub struct StageHandle(pub Handle<Stage>);
@@ -54,3 +60,9 @@ pub fn color_from_vec(color: &[u8]) -> Color {
         _ => Color::rgb(1.0, 1.0, 1.0),
     }
 }
+
+#[derive(Resource)]
+pub struct EnemySpawn(pub Timer);
+
+#[derive(Resource)]
+pub struct SplitTimer(pub Timer);

@@ -1,10 +1,7 @@
 use std::time::Duration;
 
 use self::{
-    components::{
-        EnemySpawn, ExplosionEvent, IdCounter, MissileArrivalEvent, PhysicsSet, Score, SplitTimer,
-        ENEMY_SPAWN_INTERVAL_SECS, SPLIT_INTERVAL_SECS,
-    },
+    components::{ExplosionEvent, IdCounter, MissileArrivalEvent, PhysicsSet, Score},
     effects::{flick_system, timed_removal_system},
     prelude::stage_colors,
     systems::{
@@ -12,7 +9,7 @@ use self::{
         explode_city, explosion_event_listener_system, explosion_system, flame_engulf_system,
         game_keys, game_over_ui, gizmo_missile_trails, missile_arrival_event_listner, move_cursor,
         move_missile, move_ufo, reset_game_listener, rotate_player, score_ui, setup_player,
-        spawn_enemies, split_missiles, teardown,
+        spawn_enemies, split_missiles, teardown, wave_ui,
     },
 };
 use crate::GameState;
@@ -40,6 +37,7 @@ impl Plugin for GamePlugin {
                         animate_sprite_indices,
                         score_ui,
                         ammo_ui,
+                        wave_ui,
                     )
                         .run_if(in_state(GameState::InGame).or_else(in_state(GameState::GameOver))),
                     // run these systems if we are in the InGame state
@@ -77,14 +75,6 @@ impl Plugin for GamePlugin {
                 PhysicsSet::Movement.before(PhysicsSet::CollisionDetection),
             )
             .insert_resource(IdCounter(0))
-            .insert_resource(Score(0))
-            .insert_resource(EnemySpawn(Timer::new(
-                Duration::from_secs(ENEMY_SPAWN_INTERVAL_SECS),
-                TimerMode::Repeating,
-            )))
-            .insert_resource(SplitTimer(Timer::new(
-                Duration::from_secs(SPLIT_INTERVAL_SECS),
-                TimerMode::Repeating,
-            )));
+            .insert_resource(Score(0));
     }
 }

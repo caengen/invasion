@@ -21,6 +21,9 @@ impl Plugin for EnterStagePlugin {
                 )
                     .run_if(in_state(GameState::EnterStage)),
             )
-            .add_systems(OnExit(GameState::EnterStage), teardown_stage);
+            .add_systems(
+                OnExit(GameState::EnterStage),
+                (setup_resources, teardown_stage).chain(),
+            );
     }
 }

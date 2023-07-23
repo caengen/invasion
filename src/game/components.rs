@@ -4,16 +4,6 @@ use bevy::{prelude::*, utils::HashSet};
 use derive_more::From;
 
 pub const PLAYER_MISSILE_SPEED: f32 = 250.0;
-pub const MISSILE_SPEED: f32 = 35.0;
-pub const UFO_SPEED: f32 = 75.0;
-pub const MISSILE_SPAWN_MIN: usize = 1;
-pub const MISSILE_SPAWN_MAX: usize = 3;
-
-pub const ENEMY_SPAWN_INTERVAL_SECS: u64 = 3;
-pub const SPLIT_INTERVAL_SECS: u64 = 3;
-pub const MAX_SPLIT: usize = 2;
-pub const SPLIT_CHANCE: f64 = 0.1;
-pub const DROP_BOMB_CHANCE: f64 = 0.3;
 
 #[derive(From)]
 pub enum Scoring {
@@ -94,12 +84,6 @@ impl<T, U> Stepper<T, U> {
     }
 }
 
-pub enum Direction {
-    Left,
-    Right,
-    Up,
-    Down,
-}
 #[derive(Component)]
 pub struct Cursor;
 
@@ -112,9 +96,6 @@ pub struct Missile {
     pub lock_id: usize,
     pub vel: f32,
 }
-
-#[derive(Resource)]
-pub struct SplitTimer(pub Timer);
 
 #[derive(Clone)]
 pub struct ChainedMeta {
@@ -157,9 +138,6 @@ impl Explosion {
 pub struct IdCounter(pub usize);
 #[derive(Resource)]
 pub struct Score(pub usize);
-
-#[derive(Resource)]
-pub struct EnemySpawn(pub Timer);
 
 impl IdCounter {
     pub fn next(&mut self) -> usize {
