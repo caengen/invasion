@@ -839,7 +839,7 @@ mod spawner {
         origin: Option<Vec2>,
     ) {
         let origin = origin.unwrap_or_else(|| {
-            let x = rng.usize(-(SCREEN.x / 2.0) as usize..(SCREEN.x / 2.0) as usize) as f32;
+            let x = rng.i32(-(SCREEN.x / 2.0) as i32..(SCREEN.x / 2.0) as i32) as f32;
             let y = SCREEN.y / 2.0;
             vec2(x, y)
         });
