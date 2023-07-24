@@ -7,9 +7,10 @@ use self::{
     systems::{
         ammo_ui, animate_sprite_indices, animate_sprite_steps, change_colors, defeat, drop_bombs,
         explode_city, explosion_event_listener_system, explosion_system, flame_engulf_system,
-        game_keys, game_over_ui, gizmo_missile_trails, missile_arrival_event_listner, move_cursor,
-        move_missile, move_ufo, reset_game_listener, rotate_player, score_ui, setup_player,
-        spawn_enemies, split_missiles, teardown, wave_ui,
+        game_keys, game_over_ui, gizmo_missile_trails, is_wave_finished,
+        missile_arrival_event_listner, move_cursor, move_missile, move_ufo, reset_game_listener,
+        rotate_player, score_ui, setup_player, spawn_enemies, split_missiles, teardown,
+        wave_complete, wave_ui,
     },
 };
 use crate::GameState;
@@ -46,7 +47,9 @@ impl Plugin for GamePlugin {
                         flick_system,
                         change_colors,
                         (
-                            spawn_enemies,
+                            spawn_enemies.run_if(
+                                in_state(GameState::InGame).and_then(not(is_wave_finished)),
+                            ),
                             split_missiles,
                             move_missile,
                             gizmo_missile_trails,
@@ -63,6 +66,8 @@ impl Plugin for GamePlugin {
                         rotate_player,
                         defeat,
                         stage_colors.after(spawn_enemies),
+                        (wave_complete)
+                            .run_if(in_state(GameState::InGame).and_then(is_wave_finished)),
                     )
                         .run_if(in_state(GameState::InGame)),
                     // run these systems if we are in the GameOver state

@@ -15,10 +15,10 @@ use super::{
         City, Cursor, Destroyed, DropBombTimer, Enemy, Engulfable, Explodable, Explosion,
         ExplosionEvent, ExplosionMode, FlameRadius, Foreground, Health, IdCounter, Missile,
         MissileArrivalEvent, MissileReserve, Player, Score, Scoring, SpawnPoint, Stepper,
-        TargetLock, Ufo, PLAYER_MISSILE_SPEED,
+        TargetLock, Ufo, MAX_AMMO, PLAYER_MISSILE_SPEED,
     },
     effects::{Flick, TimedRemoval},
-    prelude::{color_from_vec, EnemySpawn, SplitTimer, Stage, StageHandle, Wave},
+    prelude::{color_from_vec, EnemySpawn, SplitTimer, Stage, StageHandle, Wave, WaveSpawnCount},
 };
 
 pub fn game_keys(
@@ -198,6 +198,28 @@ pub fn split_missiles(
     }
 }
 
+pub fn is_wave_finished(
+    stage: Res<StageHandle>,
+    stages: Res<Assets<Stage>>,
+    wave: Res<Wave>,
+    spawn_count: Res<WaveSpawnCount>,
+) -> bool {
+    let stage = stages.get(&stage.0).unwrap();
+    stage.enemies_count(wave.0) <= spawn_count.0
+}
+
+pub fn wave_complete(
+    mut wave: ResMut<Wave>,
+    mut spawn_count: ResMut<WaveSpawnCount>,
+    mut missile_ammo: Query<&mut MissileReserve, With<Player>>,
+) {
+    wave.0 += 1;
+    spawn_count.0 = 0;
+    for mut ammo in missile_ammo.iter_mut() {
+        ammo.0 = MAX_AMMO;
+    }
+}
+
 pub fn spawn_enemies(
     mut id_counter: ResMut<IdCounter>,
     mut commands: Commands,
@@ -208,6 +230,7 @@ pub fn spawn_enemies(
     stage: Res<StageHandle>,
     stages: Res<Assets<Stage>>,
     wave: Res<Wave>,
+    mut spawn_count: ResMut<WaveSpawnCount>,
 ) {
     enemy_spawn.0.tick(time.delta());
 
@@ -217,12 +240,13 @@ pub fn spawn_enemies(
 
     enemy_spawn.0.reset();
 
-    let mut rng = RngComponent::from(&mut global_rng);
     let stage = stages.get(&stage.0).unwrap();
+    let mut rng = RngComponent::from(&mut global_rng);
 
     // spawn ufo
     if rng.chance(stage.ufo_chance(wave.0)) {
         spawner::ufo(&mut commands, &mut rng, images.cursor.clone());
+        spawn_count.0 += 1;
     }
 
     for _ in 0..=rng.usize(stage.missile_spawn_min(wave.0)..stage.missile_spawn_max(wave.0)) {
@@ -234,6 +258,7 @@ pub fn spawn_enemies(
             &stage,
             None,
         );
+        spawn_count.0 += 1;
     }
 }
 
@@ -652,7 +677,7 @@ pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
             Player,
             Cannon,
             Health { max: 3, current: 3 },
-            MissileReserve(30),
+            MissileReserve(MAX_AMMO),
             Foreground,
         ))
         .id();

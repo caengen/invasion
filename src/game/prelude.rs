@@ -114,3 +114,5 @@ pub struct EnemySpawn(pub Timer);
 
 #[derive(Resource)]
 pub struct SplitTimer(pub Timer);
+#[derive(Resource)]
+pub struct WaveSpawnCount(pub usize);

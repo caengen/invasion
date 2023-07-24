@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::{
-    game::prelude::{EnemySpawn, SplitTimer, Stage, StageHandle, Wave},
+    game::prelude::{EnemySpawn, SplitTimer, Stage, StageHandle, Wave, WaveSpawnCount},
     GameState,
 };
 use bevy::prelude::*;
@@ -31,6 +31,7 @@ pub fn setup_resources(
         Duration::from_millis((stage.split_interval_secs(0) * 1000.0) as u64),
         TimerMode::Repeating,
     )));
+    commands.insert_resource(WaveSpawnCount(0));
 }
 
 pub fn show_stage_intro(

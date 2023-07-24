@@ -4,6 +4,7 @@ use bevy::{prelude::*, utils::HashSet};
 use derive_more::From;
 
 pub const PLAYER_MISSILE_SPEED: f32 = 250.0;
+pub const MAX_AMMO: u8 = 30;
 
 #[derive(From)]
 pub enum Scoring {
@@ -171,7 +172,7 @@ pub struct TextColor;
 #[derive(Component)]
 pub struct DropBombTimer(pub Timer);
 #[derive(Component)]
-pub struct MissileReserve(pub usize);
+pub struct MissileReserve(pub u8);
 #[derive(Component)]
 pub struct City;
 #[derive(Component)]
