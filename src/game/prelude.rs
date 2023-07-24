@@ -16,7 +16,7 @@ pub struct Stage {
     enemies_count: usize,
     missile_spawn_min: usize,
     missile_spawn_max: usize,
-    pub missile_speed: f32,
+    missile_speed: f32,
     ufo_speed: f32,
     drop_bomb_chance: f64,
     ufo_chance: f64,
@@ -38,19 +38,24 @@ impl Stage {
         self.spawn_interval_secs / (self.difficulty_base + wave as f32 * self.difficulty_rate)
     }
     pub fn enemies_count(&self, wave: usize) -> usize {
-        (self.enemies_count as f32 * (self.difficulty_base + wave as f32 * self.difficulty_rate))
-            as usize
+        self.enemies_count + (wave * 2)
     }
     pub fn missile_spawn_min(&self, wave: usize) -> usize {
         (self.missile_spawn_min as f32 * (wave as f32 * self.difficulty_rate)) as usize
     }
 
     pub fn missile_spawn_max(&self, wave: usize) -> usize {
-        self.missile_spawn_max + wave
+        self.missile_spawn_max + wave / 10
     }
 
     pub fn ufo_speed(&self, wave: usize) -> f32 {
-        self.ufo_speed + wave as f32 * self.difficulty_rate * 3.3
+        f32::min(
+            50.0,
+            self.ufo_speed + wave as f32 * self.difficulty_base * 3.3,
+        )
+    }
+    pub fn missile_speed(&self, wave: usize) -> f32 {
+        f32::min(50.0, self.missile_speed + wave as f32 * 4.5)
     }
 
     pub fn drop_bomb_chance(&self, wave: usize) -> f64 {
@@ -58,12 +63,15 @@ impl Stage {
     }
 
     pub fn ufo_chance(&self, wave: usize) -> f64 {
-        self.ufo_chance + ((wave as f32 / 20.0) + self.difficulty_rate) as f64
+        f64::min(
+            1.0,
+            self.ufo_chance + ((wave as f32 / 10.0) * self.difficulty_rate) as f64,
+        )
     }
 
     // increases by 1% per wave
     pub fn split_chance(&self, wave: usize) -> f64 {
-        self.split_chance + 0.01 * wave as f64
+        f64::min(1.0, self.split_chance + 0.01 * wave as f64)
     }
 
     // increases by 1 per 10 waves

@@ -152,6 +152,7 @@ pub fn drop_bombs(
             &mut id_counter,
             images.cursor.clone(),
             &stage,
+            wave.0,
             Some(transform.translation.truncate()),
         );
     }
@@ -192,6 +193,7 @@ pub fn split_missiles(
                 &mut id_counter,
                 images.cursor.clone(),
                 &stage,
+                wave.0,
                 Some(transform.translation.truncate()),
             );
         }
@@ -256,6 +258,7 @@ pub fn spawn_enemies(
             &mut id_counter,
             images.cursor.clone(),
             &stage,
+            wave.0,
             None,
         );
         spawn_count.0 += 1;
@@ -805,7 +808,7 @@ mod spawner {
     use super::color_from_vec;
 
     pub fn ufo(commands: &mut Commands, rng: &mut RngComponent, images: Handle<TextureAtlas>) {
-        let origin_y = rng.i32((-(SCREEN.y / 3.0) as i32)..((SCREEN.y / 2.0) as i32 - 30)) as f32;
+        let origin_y = rng.i32(0..((SCREEN.y / 2.0) as i32 - 30)) as f32;
         let sign = if rng.bool() { 1.0 } else { -1.0 };
         let origin_x = sign * (SCREEN.x / 2.0);
 
@@ -836,6 +839,7 @@ mod spawner {
         id_counter: &mut ResMut<IdCounter>,
         images: Handle<TextureAtlas>,
         stage: &Stage,
+        wave: usize,
         origin: Option<Vec2>,
     ) {
         let origin = origin.unwrap_or_else(|| {
@@ -860,7 +864,7 @@ mod spawner {
                 Missile {
                     dest: Vec2::new(dest_x, -SCREEN.y / 2.0 + 16.0),
                     lock_id: id_counter.next(),
-                    vel: stage.missile_speed,
+                    vel: stage.missile_speed(wave),
                 },
                 Explodable,
                 Engulfable,
