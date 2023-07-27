@@ -22,7 +22,12 @@ pub fn setup_resources(
     stages: Res<Assets<Stage>>,
 ) {
     let stage = stages.get(&stage.0).unwrap();
-    commands.insert_resource(Wave(0));
+    let mut timer = Timer::new(Duration::from_secs(5), TimerMode::Once);
+    timer.pause();
+    commands.insert_resource(Wave {
+        n: 0,
+        completion_timeout: timer,
+    });
     commands.insert_resource(EnemySpawn(Timer::new(
         Duration::from_millis((stage.spawn_interval_secs(0) * 1000.0) as u64),
         TimerMode::Repeating,

@@ -141,7 +141,7 @@ pub fn drop_bombs(
     for (entity, transform, mut timer) in ufos.iter_mut() {
         timer.0.tick(time.delta());
 
-        if !timer.0.just_finished() || !rng.chance(stage.drop_bomb_chance(wave.0)) {
+        if !timer.0.just_finished() || !rng.chance(stage.drop_bomb_chance(wave.n)) {
             continue;
         }
 
@@ -152,7 +152,7 @@ pub fn drop_bombs(
             &mut id_counter,
             images.cursor.clone(),
             &stage,
-            wave.0,
+            wave.n,
             Some(transform.translation.truncate()),
         );
     }
@@ -178,7 +178,7 @@ pub fn split_missiles(
     let mut rng = RngComponent::from(&mut global_rng);
     let stage = stages.get(&stage.0).unwrap();
 
-    if !rng.chance(stage.split_chance(wave.0)) {
+    if !rng.chance(stage.split_chance(wave.n)) {
         return;
     }
     let index = rng.usize(0..query.iter().len());
@@ -186,14 +186,14 @@ pub fn split_missiles(
 
     if let Some((entity, transform)) = res {
         commands.entity(entity).despawn();
-        for _ in 0..stage.max_split(wave.0) {
+        for _ in 0..stage.max_split(wave.n) {
             spawner::missile(
                 &mut commands,
                 &mut rng,
                 &mut id_counter,
                 images.cursor.clone(),
                 &stage,
-                wave.0,
+                wave.n,
                 Some(transform.translation.truncate()),
             );
         }
@@ -207,7 +207,7 @@ pub fn is_wave_finished(
     spawn_count: Res<WaveSpawnCount>,
 ) -> bool {
     let stage = stages.get(&stage.0).unwrap();
-    stage.enemies_count(wave.0) <= spawn_count.0
+    stage.enemies_count(wave.n) <= spawn_count.0
 }
 
 pub fn wave_complete(
@@ -215,10 +215,19 @@ pub fn wave_complete(
     mut spawn_count: ResMut<WaveSpawnCount>,
     mut missile_ammo: Query<&mut MissileReserve, With<Player>>,
 ) {
-    wave.0 += 1;
+    wave.n += 1;
+    wave.completion_timeout.unpause();
     spawn_count.0 = 0;
     for mut ammo in missile_ammo.iter_mut() {
         ammo.0 = MAX_AMMO;
+    }
+}
+
+pub fn tick_wave_completion(time: Res<Time>, mut wave: ResMut<Wave>) {
+    wave.completion_timeout.tick(time.delta());
+    if wave.completion_timeout.just_finished() {
+        wave.completion_timeout.reset();
+        wave.completion_timeout.pause();
     }
 }
 
@@ -234,6 +243,10 @@ pub fn spawn_enemies(
     wave: Res<Wave>,
     mut spawn_count: ResMut<WaveSpawnCount>,
 ) {
+    if !wave.completion_timeout.paused() && !wave.completion_timeout.finished() {
+        return;
+    }
+
     enemy_spawn.0.tick(time.delta());
 
     if !enemy_spawn.0.just_finished() {
@@ -246,19 +259,19 @@ pub fn spawn_enemies(
     let mut rng = RngComponent::from(&mut global_rng);
 
     // spawn ufo
-    if rng.chance(stage.ufo_chance(wave.0)) {
+    if rng.chance(stage.ufo_chance(wave.n)) {
         spawner::ufo(&mut commands, &mut rng, images.cursor.clone());
         spawn_count.0 += 1;
     }
 
-    for _ in 0..=rng.usize(stage.missile_spawn_min(wave.0)..stage.missile_spawn_max(wave.0)) {
+    for _ in 0..=rng.usize(stage.missile_spawn_min(wave.n)..stage.missile_spawn_max(wave.n)) {
         spawner::missile(
             &mut commands,
             &mut rng,
             &mut id_counter,
             images.cursor.clone(),
             &stage,
-            wave.0,
+            wave.n,
             None,
         );
         spawn_count.0 += 1;
@@ -283,7 +296,7 @@ pub fn move_ufo(
     for (entity, ufo, mut transform) in ufos.iter_mut() {
         let dir = ufo.0 - transform.translation.truncate();
         let dist = dir.length();
-        let translation = dir.normalize() * stage.ufo_speed(wave.0) * time.delta_seconds();
+        let translation = dir.normalize() * stage.ufo_speed(wave.n) * time.delta_seconds();
         if dist > translation.length() {
             // move the ufo
             transform.translation += translation.extend(0.0);
@@ -719,6 +732,26 @@ pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
 /* UI
  * Systems that are called every frame to update the egui UI
  */
+pub fn wave_complete_message_ui(mut contexts: EguiContexts, wave: Res<Wave>) {
+    if wave.completion_timeout.paused() || wave.completion_timeout.finished() {
+        return;
+    }
+
+    egui::Area::new("Wave Complete")
+        .anchor(Align2::CENTER_CENTER, egui::emath::vec2(0., 0.))
+        .show(contexts.ctx_mut(), |ui: &mut egui::Ui| {
+            ui.label(
+                RichText::new(format!(
+                    "Next wave in {:0>2}!",
+                    wave.completion_timeout.duration().as_secs()
+                        - wave.completion_timeout.elapsed_secs() as u64
+                ))
+                .font(FontId::proportional(24.))
+                .color(Color32::WHITE),
+            );
+        });
+}
+
 pub fn ammo_ui(
     mut contexts: EguiContexts,
     images: Res<ImageAssets>,
@@ -748,7 +781,7 @@ pub fn wave_ui(mut contexts: EguiContexts, wave: Res<Wave>) {
         .show(contexts.ctx_mut(), |ui: &mut egui::Ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
                 ui.label(
-                    RichText::new(format!("{:0>2}", wave.0 + 1))
+                    RichText::new(format!("{:0>2}", wave.n + 1))
                         .font(FontId::proportional(24.))
                         .color(Color32::WHITE),
                 );

@@ -10,7 +10,7 @@ use self::{
         game_keys, game_over_ui, gizmo_missile_trails, is_wave_finished,
         missile_arrival_event_listner, move_cursor, move_missile, move_ufo, reset_game_listener,
         rotate_player, score_ui, setup_player, spawn_enemies, split_missiles, teardown,
-        wave_complete, wave_ui,
+        tick_wave_completion, wave_complete, wave_complete_message_ui, wave_ui,
     },
 };
 use crate::GameState;
@@ -39,6 +39,8 @@ impl Plugin for GamePlugin {
                         score_ui,
                         ammo_ui,
                         wave_ui,
+                        tick_wave_completion,
+                        wave_complete_message_ui,
                     )
                         .run_if(in_state(GameState::InGame).or_else(in_state(GameState::GameOver))),
                     // run these systems if we are in the InGame state

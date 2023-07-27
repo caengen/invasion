@@ -86,7 +86,10 @@ impl Stage {
 }
 
 #[derive(Resource)]
-pub struct Wave(pub usize);
+pub struct Wave {
+    pub n: usize,
+    pub completion_timeout: Timer,
+}
 
 #[derive(Resource)]
 pub struct StageHandle(pub Handle<Stage>);
