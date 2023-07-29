@@ -211,15 +211,20 @@ pub fn is_wave_finished(
 }
 
 pub fn wave_complete(
+    mut commands: Commands,
     mut wave: ResMut<Wave>,
     mut spawn_count: ResMut<WaveSpawnCount>,
     mut missile_ammo: Query<&mut MissileReserve, With<Player>>,
+    missiles: Query<(Entity), With<Missile>>,
 ) {
     wave.n += 1;
     wave.completion_timeout.unpause();
     spawn_count.0 = 0;
     for mut ammo in missile_ammo.iter_mut() {
         ammo.0 = MAX_AMMO;
+    }
+    for missile in missiles.iter() {
+        commands.entity(missile).despawn();
     }
 }
 
@@ -574,6 +579,33 @@ pub fn missile_arrival_event_listner(
         //         next_state.set(GameState::GameOver);
         //     }
         // }
+    }
+}
+
+pub fn despawns(
+    mut commands: Commands,
+    wave: Res<Wave>,
+    missiles: Query<(Entity, &Transform), With<Missile>>,
+    ufos: Query<(Entity, &Transform), With<Ufo>>,
+    mut explosion_event: EventWriter<ExplosionEvent>,
+) {
+    if wave.completion_timeout.paused() || wave.completion_timeout.finished() {
+        return;
+    }
+
+    for (missile, mt) in missiles.iter() {
+        explosion_event.send(ExplosionEvent {
+            pos: mt.translation,
+            mode: ExplosionMode::Single,
+        });
+        commands.entity(missile).despawn();
+    }
+    for (ufo, ut) in ufos.iter() {
+        explosion_event.send(ExplosionEvent {
+            pos: ut.translation,
+            mode: ExplosionMode::Single,
+        });
+        commands.entity(ufo).despawn();
     }
 }
 

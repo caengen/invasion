@@ -5,9 +5,9 @@ use self::{
     effects::{flick_system, timed_removal_system},
     prelude::stage_colors,
     systems::{
-        ammo_ui, animate_sprite_indices, animate_sprite_steps, change_colors, defeat, drop_bombs,
-        explode_city, explosion_event_listener_system, explosion_system, flame_engulf_system,
-        game_keys, game_over_ui, gizmo_missile_trails, is_wave_finished,
+        ammo_ui, animate_sprite_indices, animate_sprite_steps, change_colors, defeat, despawns,
+        drop_bombs, explode_city, explosion_event_listener_system, explosion_system,
+        flame_engulf_system, game_keys, game_over_ui, gizmo_missile_trails, is_wave_finished,
         missile_arrival_event_listner, move_cursor, move_missile, move_ufo, reset_game_listener,
         rotate_player, score_ui, setup_player, spawn_enemies, split_missiles, teardown,
         tick_wave_completion, wave_complete, wave_complete_message_ui, wave_ui,
@@ -63,6 +63,7 @@ impl Plugin for GamePlugin {
                             explosion_system,
                             flame_engulf_system,
                             explode_city,
+                            despawns,
                         )
                             .chain(),
                         rotate_player,
