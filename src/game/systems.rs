@@ -6,7 +6,7 @@ use bevy::{
 };
 use bevy_egui::{
     egui::{self, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, RichText},
-    EguiContexts,
+    EguiContexts, EguiSettings,
 };
 use bevy_turborand::{DelegatedRng, GlobalRng, RngComponent};
 
@@ -27,14 +27,13 @@ use super::{
 pub fn window_resized(
     windows: Query<&Window>,
     mut q: Query<&mut OrthographicProjection, With<MainCamera>>,
+    mut egui_settings: ResMut<EguiSettings>,
 ) {
     let window = windows.single();
     let scale = SCREEN.x / window.width();
-    // for mut transform in transforms.iter_mut() {
-    //     transform.scale = Vec3::splat(scale_factor);
-    // }
     for mut projection in q.iter_mut() {
         projection.scale = scale;
+        egui_settings.scale_factor = scale.into();
     }
 }
 
