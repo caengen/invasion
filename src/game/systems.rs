@@ -33,7 +33,8 @@ pub fn window_resized(
     let scale = SCREEN.x / window.width();
     for mut projection in q.iter_mut() {
         projection.scale = scale;
-        egui_settings.scale_factor = scale.into();
+        // wtf why is this reversed?
+        egui_settings.scale_factor = (window.width() / SCREEN.x).into();
     }
 }
 
