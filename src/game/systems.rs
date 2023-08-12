@@ -1,6 +1,9 @@
 use std::ops::Add;
 
-use bevy::{core_pipeline::clear_color::ClearColorConfig, ecs::query::Has, math::vec2, prelude::*};
+use bevy::{
+    core_pipeline::clear_color::ClearColorConfig, ecs::query::Has, math::vec2, prelude::*,
+    window::WindowResized,
+};
 use bevy_egui::{
     egui::{self, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, RichText},
     EguiContexts,
@@ -20,6 +23,20 @@ use super::{
     effects::{Flick, TimedRemoval},
     prelude::{color_from_vec, EnemySpawn, SplitTimer, Stage, StageHandle, Wave, WaveSpawnCount},
 };
+
+pub fn window_resized(
+    windows: Query<&Window>,
+    mut q: Query<&mut OrthographicProjection, With<MainCamera>>,
+) {
+    let window = windows.single();
+    let scale = SCREEN.x / window.width();
+    // for mut transform in transforms.iter_mut() {
+    //     transform.scale = Vec3::splat(scale_factor);
+    // }
+    for mut projection in q.iter_mut() {
+        projection.scale = scale;
+    }
+}
 
 pub fn game_keys(
     buttons: Res<Input<MouseButton>>,

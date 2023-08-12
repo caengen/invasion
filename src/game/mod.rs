@@ -10,7 +10,7 @@ use self::{
         flame_engulf_system, game_keys, game_over_ui, gizmo_missile_trails, is_wave_finished,
         missile_arrival_event_listner, move_cursor, move_missile, move_ufo, reset_game_listener,
         rotate_player, score_ui, setup_player, spawn_enemies, split_missiles, teardown,
-        tick_wave_completion, wave_complete, wave_complete_message_ui, wave_ui,
+        tick_wave_completion, wave_complete, wave_complete_message_ui, wave_ui, window_resized,
     },
 };
 use crate::GameState;
@@ -28,6 +28,7 @@ impl Plugin for GamePlugin {
         app.add_event::<MissileArrivalEvent>()
             .add_event::<ExplosionEvent>()
             .add_systems(OnEnter(GameState::InGame), setup_player)
+            .add_systems(Update, window_resized)
             .add_systems(
                 Update,
                 (
