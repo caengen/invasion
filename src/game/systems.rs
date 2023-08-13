@@ -24,20 +24,6 @@ use super::{
     prelude::{color_from_vec, EnemySpawn, SplitTimer, Stage, StageHandle, Wave, WaveSpawnCount},
 };
 
-pub fn window_resized(
-    windows: Query<&Window>,
-    mut q: Query<&mut OrthographicProjection, With<MainCamera>>,
-    mut egui_settings: ResMut<EguiSettings>,
-) {
-    let window = windows.single();
-    let scale = SCREEN.x / window.width();
-    for mut projection in q.iter_mut() {
-        projection.scale = scale;
-        // wtf why is this reversed?
-        egui_settings.scale_factor = (window.width() / SCREEN.x).into();
-    }
-}
-
 pub fn game_keys(
     buttons: Res<Input<MouseButton>>,
     keyboard: Res<Input<KeyCode>>,

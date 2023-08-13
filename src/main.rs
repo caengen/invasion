@@ -9,6 +9,7 @@ use bevy::{
 };
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
 use bevy_common_assets::json::JsonAssetPlugin;
+use bevy_egui::EguiSettings;
 use bevy_egui::{
     egui::{FontData, FontDefinitions, FontFamily},
     EguiContexts, EguiPlugin,
@@ -126,7 +127,8 @@ fn main() {
         EnterStagePlugin,
         GamePlugin,
     ))
-    .add_systems(Startup, (setup_fonts, spawn_camera));
+    .add_systems(Startup, (setup_fonts, spawn_camera))
+    .add_systems(Update, window_resized);
 
     app.run();
 }
@@ -174,4 +176,18 @@ fn setup_fonts(mut contexts: EguiContexts) {
         .push("visitor".to_owned());
 
     contexts.ctx_mut().set_fonts(fonts);
+}
+
+fn window_resized(
+    windows: Query<&Window>,
+    mut q: Query<&mut OrthographicProjection, With<MainCamera>>,
+    mut egui_settings: ResMut<EguiSettings>,
+) {
+    let window = windows.single();
+    let scale = SCREEN.x / window.width();
+    for mut projection in q.iter_mut() {
+        projection.scale = scale;
+        // wtf why is this reversed?
+        egui_settings.scale_factor = (window.width() / SCREEN.x).into();
+    }
 }
