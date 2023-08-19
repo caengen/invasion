@@ -32,10 +32,13 @@ pub struct Stage {
 
 impl Stage {
     pub fn spawn_interval_secs(&self, wave: usize) -> f32 {
-        f32::max(2.0, self.spawn_interval_secs - (wave as f32 / 10.0))
+        f32::max(1.75, self.spawn_interval_secs - (wave as f32 / 10.0))
     }
     pub fn split_interval_secs(&self, wave: usize) -> f32 {
-        self.spawn_interval_secs / (self.difficulty_base + wave as f32 * self.difficulty_rate)
+        f32::max(
+            1.5,
+            self.spawn_interval_secs / (self.difficulty_base + wave as f32 * self.difficulty_rate),
+        )
     }
     pub fn enemies_count(&self, wave: usize) -> usize {
         self.enemies_count + (wave * 2)
