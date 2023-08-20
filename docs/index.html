@@ -15,18 +15,22 @@
             align-items: center;
             margin: 0;
         }
-        canvas {
-            padding: 0px;
+        body > div {
             width: 100%;
             height: auto;
             aspect-ratio: 16 / 9;
+        }
+        canvas {
+            padding: 0px;
             touch-action: manipulation;
         }
     </style>
 </head>
 
 <body>
-    <script type="module"> import init from './invasion.js'; var res = await init(); res.start(); </script>
+    <div>
+        <script type="module"> import init from './invasion.js'; var res = await init(); res.start(); </script>
+    </div>
 </body>
 
 </html>
