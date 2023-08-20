@@ -38,8 +38,9 @@ pub fn game_keys(
         (With<TankBody>, Without<Cursor>),
     >,
     time: Res<Time>,
+    wave: Res<Wave>,
 ) {
-    if buttons.just_pressed(MouseButton::Left) {
+    if buttons.just_pressed(MouseButton::Left) && wave.completion_timeout.paused() {
         let (player_entity, mut missile_reserve) = player.single_mut().0;
         commands.entity(player_entity).insert((
             AnimationIndices {
