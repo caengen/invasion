@@ -14,10 +14,10 @@ use crate::{GameState, ImageAssets, MainCamera, SCREEN};
 
 use super::{
     components::{
-        AnimationIndices, AnimationStep, AnimeRemoveOnFinish, Cannon, CannonBase, ChainedMeta,
-        City, Cursor, Destroyed, DropBombTimer, Enemy, Engulfable, Explodable, Explosion,
-        ExplosionEvent, ExplosionMode, FlameRadius, Foreground, Health, IdCounter, Missile,
-        MissileArrivalEvent, MissileReserve, Player, Score, Scoring, SpawnPoint, Stepper,
+        AnimationIndices, AnimationStep, AnimeRemoveOnFinish, Cannon, ChainedMeta, City, Cursor,
+        Destroyed, DropBombTimer, Enemy, Engulfable, Explodable, Explosion, ExplosionEvent,
+        ExplosionMode, FlameRadius, Foreground, Health, IdCounter, Missile, MissileArrivalEvent,
+        MissileReserve, Player, Score, Scoring, SpawnPoint, Stepper, TankBody, TankDestroyedEvent,
         TargetLock, Ufo, MAX_AMMO, PLAYER_MISSILE_SPEED,
     },
     effects::{Flick, TimedRemoval},
@@ -27,14 +27,14 @@ use super::{
 pub fn game_keys(
     buttons: Res<Input<MouseButton>>,
     keyboard: Res<Input<KeyCode>>,
-    cursor_pos: Query<&Transform, (With<Cursor>, Without<CannonBase>)>,
+    cursor_pos: Query<&Transform, (With<Cursor>, Without<TankBody>)>,
     mut id_counter: ResMut<IdCounter>,
     mut commands: Commands,
     images: Res<ImageAssets>,
     mut player: Query<((Entity, &mut MissileReserve), With<Player>)>,
     mut cannon_base: Query<
         (Entity, &mut Transform, Has<AnimationIndices>),
-        (With<CannonBase>, Without<Cursor>),
+        (With<TankBody>, Without<Cursor>),
     >,
     time: Res<Time>,
 ) {
@@ -94,8 +94,8 @@ pub fn game_keys(
     if keyboard.any_pressed([KeyCode::A, KeyCode::Left, KeyCode::Right, KeyCode::D]) {
         if !has_anim {
             commands.entity(entity).insert((AnimationIndices {
-                first: 0,
-                last: 1,
+                first: 1,
+                last: 2,
                 timer: Timer::from_seconds(0.3, TimerMode::Repeating),
             },));
         }
@@ -359,19 +359,24 @@ pub fn move_cursor(
 }
 
 pub fn rotate_player(
-    cannon_base: Query<&Transform, (With<CannonBase>, Without<Cursor>, Without<Cannon>)>,
-    mut cannon: Query<&mut Transform, (With<Cannon>, Without<Cursor>, Without<CannonBase>)>,
-    cursor: Query<&Transform, (With<Cursor>, Without<CannonBase>, Without<Cannon>)>,
+    cannon_base: Query<(&Transform, &TankBody), (Without<Cursor>, Without<Cannon>)>,
+    mut cannon: Query<&mut Transform, (With<Cannon>, Without<Cursor>, Without<TankBody>)>,
+    cursor: Query<&Transform, (With<Cursor>, Without<TankBody>, Without<Cannon>)>,
 ) {
-    for transform in cannon_base.iter() {
-        for cursor in cursor.iter() {
-            // let direction = cursor.translation.truncate() - transform.translation.truncate();
-            let a = transform.translation.truncate();
-            let b = cursor.translation.truncate();
-            let direction = b - a;
-            let angle = direction.y.atan2(direction.x) - 90.0_f32.to_radians();
-            for mut transform in cannon.iter_mut() {
-                transform.rotation = Quat::from_rotation_z(angle);
+    for (transform, tank_body) in cannon_base.iter() {
+        match tank_body {
+            TankBody::Destroyed => {}
+            TankBody::Intact => {
+                for cursor in cursor.iter() {
+                    // let direction = cursor.translation.truncate() - transform.translation.truncate();
+                    let a = transform.translation.truncate();
+                    let b = cursor.translation.truncate();
+                    let direction = b - a;
+                    let angle = direction.y.atan2(direction.x) - 90.0_f32.to_radians();
+                    for mut transform in cannon.iter_mut() {
+                        transform.rotation = Quat::from_rotation_z(angle);
+                    }
+                }
             }
         }
     }
@@ -534,12 +539,33 @@ pub fn explode_city(
     }
 }
 
+pub fn player_destruction(
+    mut tank_destruction: EventReader<TankDestroyedEvent>,
+    mut tank: Query<(&mut TankBody, &mut TextureAtlasSprite)>,
+) {
+    for _ in tank_destruction.iter() {
+        for (mut tank, mut sprite) in tank.iter_mut() {
+            *tank = TankBody::Destroyed;
+            sprite.index = 0;
+        }
+    }
+}
+
 pub fn defeat(
     mut next_state: ResMut<NextState<GameState>>,
     cities: Query<(&Transform, &mut TextureAtlasSprite), (With<City>, Without<Destroyed>)>,
+    tank: Query<&TankBody>,
 ) {
     if cities.iter().count() == 0 {
         next_state.set(GameState::GameOver);
+    }
+    for tank in tank.iter() {
+        match tank {
+            TankBody::Intact => {}
+            TankBody::Destroyed => {
+                next_state.set(GameState::GameOver);
+            }
+        }
     }
 }
 
@@ -622,45 +648,63 @@ pub fn flame_engulf_system(
         &mut Explosion,
         Without<Engulfable>,
     )>,
-    mut engulfables: Query<(Entity, &Transform, With<Engulfable>, Has<Missile>)>,
+    mut engulfables: Query<(
+        Entity,
+        &Transform,
+        With<Engulfable>,
+        Has<Missile>,
+        Has<TankBody>,
+    )>,
     mut score: ResMut<Score>,
     mut explosion_event: EventWriter<ExplosionEvent>,
+    mut player_destruction_event: EventWriter<TankDestroyedEvent>,
 ) {
     for (flame_entity, flame_transform, mut stepper, mut expl, _) in flames.iter_mut() {
         stepper.timer.tick(time.delta());
-        if stepper.timer.just_finished() {
-            if stepper.is_finished() {
-                score.0 += expl.calculated_score();
-                commands
-                    .entity(flame_entity)
-                    .remove::<Stepper<FlameRadius, i32>>();
-            } else {
-                if let Some(radius) = stepper.next() {
-                    for (entity, transform, _, is_missile) in engulfables.iter_mut() {
-                        let distance = flame_transform.translation.distance(transform.translation);
-                        if distance > *radius as f32 {
-                            continue;
-                        }
+        if !stepper.timer.just_finished() {
+            return;
+        }
 
-                        if is_missile {
-                            explosion_event.send(ExplosionEvent {
-                                pos: transform.translation,
-                                mode: ExplosionMode::Single,
-                            });
-                            commands.entity(entity).despawn();
-                            expl.add_score(Scoring::Missile);
-                        } else {
-                            // is ufo, more points
-                            explosion_event.send(ExplosionEvent {
-                                pos: transform.translation,
-                                mode: ExplosionMode::Chained(ChainedMeta {
-                                    timer: Timer::from_seconds(0.2, TimerMode::Repeating),
-                                    remaining: 5,
-                                }),
-                            });
-                            commands.entity(entity).despawn();
-                            expl.add_score(Scoring::Ufo);
-                        }
+        if stepper.is_finished() {
+            score.0 += expl.calculated_score();
+            commands
+                .entity(flame_entity)
+                .remove::<Stepper<FlameRadius, i32>>();
+        } else {
+            if let Some(radius) = stepper.next() {
+                for (entity, transform, _, is_missile, is_tank_body) in engulfables.iter_mut() {
+                    let distance = flame_transform.translation.distance(transform.translation);
+                    if distance > *radius as f32 {
+                        continue;
+                    }
+
+                    if is_missile {
+                        explosion_event.send(ExplosionEvent {
+                            pos: transform.translation,
+                            mode: ExplosionMode::Single,
+                        });
+                        commands.entity(entity).despawn();
+                        expl.add_score(Scoring::Missile);
+                    } else if is_tank_body {
+                        explosion_event.send(ExplosionEvent {
+                            pos: transform.translation,
+                            mode: ExplosionMode::Chained(ChainedMeta {
+                                timer: Timer::from_seconds(0.2, TimerMode::Repeating),
+                                remaining: 3,
+                            }),
+                        });
+                        player_destruction_event.send(TankDestroyedEvent);
+                    } else {
+                        // is ufo, more points
+                        explosion_event.send(ExplosionEvent {
+                            pos: transform.translation,
+                            mode: ExplosionMode::Chained(ChainedMeta {
+                                timer: Timer::from_seconds(0.2, TimerMode::Repeating),
+                                remaining: 5,
+                            }),
+                        });
+                        commands.entity(entity).despawn();
+                        expl.add_score(Scoring::Ufo);
                     }
                 }
             }
@@ -668,7 +712,7 @@ pub fn flame_engulf_system(
     }
 }
 
-pub fn teardown(
+pub fn teardown_in_game(
     mut commands: Commands,
     missiles: Query<Entity, (With<Missile>, Without<Player>)>,
     player: Query<Entity, With<Player>>,
@@ -688,6 +732,12 @@ pub fn teardown(
     }
     for enemy in enemies.iter() {
         commands.entity(enemy).despawn_recursive();
+    }
+}
+
+pub fn teardown_game_over(mut commands: Commands, tank_body: Query<Entity, With<TankBody>>) {
+    for entity in tank_body.iter() {
+        commands.entity(entity).despawn_recursive();
     }
 }
 
@@ -736,11 +786,12 @@ pub fn setup_player(mut commands: Commands, images: Res<ImageAssets>) {
     let mut tank = commands.spawn((
         SpriteSheetBundle {
             texture_atlas: images.tank.clone(),
-            sprite: TextureAtlasSprite::new(0),
+            sprite: TextureAtlasSprite::new(1),
             transform: Transform::from_translation(Vec3::new(0.0, -SCREEN.y / 2.0 + 24.0, 2.0)),
             ..default()
         },
-        CannonBase,
+        TankBody::Intact,
+        Engulfable,
         Foreground,
     ));
 

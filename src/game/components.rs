@@ -23,7 +23,10 @@ pub struct Player;
 #[derive(Component)]
 pub struct Cannon;
 #[derive(Component)]
-pub struct CannonBase;
+pub enum TankBody {
+    Intact,
+    Destroyed,
+}
 #[derive(Component)]
 pub struct Ufo(pub Vec2);
 #[derive(Component)]
@@ -164,6 +167,9 @@ pub struct ExplosionEvent {
     pub pos: Vec3,
     pub mode: ExplosionMode,
 }
+
+#[derive(Event)]
+pub struct TankDestroyedEvent;
 
 #[derive(Component)]
 pub struct Foreground;
