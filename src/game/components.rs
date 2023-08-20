@@ -5,6 +5,7 @@ use derive_more::From;
 
 pub const PLAYER_MISSILE_SPEED: f32 = 250.0;
 pub const MAX_AMMO: u8 = 30;
+pub const CITY_RESTORATION_POINTS: usize = 10000;
 
 #[derive(From)]
 pub enum Scoring {
@@ -166,6 +167,12 @@ pub struct MissileArrivalEvent {
 pub struct ExplosionEvent {
     pub pos: Vec3,
     pub mode: ExplosionMode,
+}
+
+#[derive(Event)]
+pub struct ScoreGainedEvent {
+    pub previous_score: usize,
+    pub current_score: usize,
 }
 
 #[derive(Event)]

@@ -17,8 +17,9 @@ use super::{
         AnimationIndices, AnimationStep, AnimeRemoveOnFinish, Cannon, ChainedMeta, City, Cursor,
         Destroyed, DropBombTimer, Enemy, Engulfable, Explodable, Explosion, ExplosionEvent,
         ExplosionMode, FlameRadius, Foreground, Health, IdCounter, Missile, MissileArrivalEvent,
-        MissileReserve, Player, Score, Scoring, SpawnPoint, Stepper, TankBody, TankDestroyedEvent,
-        TargetLock, Ufo, MAX_AMMO, PLAYER_MISSILE_SPEED,
+        MissileReserve, Player, Score, ScoreGainedEvent, Scoring, SpawnPoint, Stepper, TankBody,
+        TankDestroyedEvent, TargetLock, Ufo, CITY_RESTORATION_POINTS, MAX_AMMO,
+        PLAYER_MISSILE_SPEED,
     },
     effects::{Flick, TimedRemoval},
     prelude::{color_from_vec, EnemySpawn, SplitTimer, Stage, StageHandle, Wave, WaveSpawnCount},
@@ -611,6 +612,31 @@ pub fn missile_arrival_event_listner(
     }
 }
 
+pub fn score_gained_event_listener(
+    mut commands: Commands,
+    mut score_gained_evnt: EventReader<ScoreGainedEvent>,
+    mut cities: Query<(Entity, &mut TextureAtlasSprite), (With<City>, With<Destroyed>)>,
+    mut global_rng: ResMut<GlobalRng>,
+) {
+    for ScoreGainedEvent {
+        previous_score,
+        current_score,
+    } in score_gained_evnt.iter()
+    {
+        let cities = cities.iter_mut();
+        if previous_score / CITY_RESTORATION_POINTS < current_score / CITY_RESTORATION_POINTS
+            && cities.len() > 0
+        {
+            let mut rng = RngComponent::from(&mut global_rng);
+            let index = rng.usize(0..cities.len());
+            if let Some((entity, mut sprite)) = cities.into_iter().nth(index) {
+                sprite.index = 0;
+                commands.entity(entity).remove::<Destroyed>();
+            }
+        }
+    }
+}
+
 pub fn despawns(
     mut commands: Commands,
     wave: Res<Wave>,
@@ -658,6 +684,7 @@ pub fn flame_engulf_system(
     mut score: ResMut<Score>,
     mut explosion_event: EventWriter<ExplosionEvent>,
     mut player_destruction_event: EventWriter<TankDestroyedEvent>,
+    mut score_gained_event: EventWriter<ScoreGainedEvent>,
 ) {
     for (flame_entity, flame_transform, mut stepper, mut expl, _) in flames.iter_mut() {
         stepper.timer.tick(time.delta());
@@ -667,6 +694,10 @@ pub fn flame_engulf_system(
 
         if stepper.is_finished() {
             score.0 += expl.calculated_score();
+            score_gained_event.send(ScoreGainedEvent {
+                previous_score: score.0 - expl.calculated_score(),
+                current_score: score.0,
+            });
             commands
                 .entity(flame_entity)
                 .remove::<Stepper<FlameRadius, i32>>();
