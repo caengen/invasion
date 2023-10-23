@@ -14,3 +14,6 @@ Run `cargo run`.
 | LMB             | Shoot at current sight position |
 | A / Left Arrow  | Move left                       |
 | D / Right Arrow | Move right                      |
+
+TODO
+- [ ] spawn chance for zeroed in missiles
